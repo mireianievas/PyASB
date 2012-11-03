@@ -12,9 +12,7 @@ created and maintained by Miguel Nievas [UCM].
 ____________________________
 '''
 
-import sys
 import pyfits
-import numpy as np
 
 __author__ = "Miguel Nievas"
 __copyright__ = "Copyright 2012, PyAstMonUCM project"
@@ -23,7 +21,7 @@ __license__ = "GPL"
 __version__ = "1.99.0"
 __maintainer__ = "Miguel Nievas"
 __email__ = "miguelnr89[at]gmail[dot]com"
-__status__ = "Prototype" # "Development", or "Production"
+__status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 def load_image(input_file,DataHeader):
 	# Image loading function
@@ -46,50 +44,82 @@ def image_extract_info(file_header):
 	and put it in a class ImageInfo
 	'''
 	class ImageInfo:
-		# Date and time in different formats
-		fits_date    = header_correct_date(file_header)
-		date_array   = [fits_date[0:4],fits_date[4:6],fits_date[6:8],
-						fits_date[9:11],fits_date[11:13],fits_date[13:15]]
-		date_str     =  date_array[0]+"/"+date_array[1]+"/"+date_array[2]+" "+\
-						date_array[3]+":"+date_array[4]+":"date_array[5]
-		# Exposure
-		texp         = header_correct_exposure(file_header)
-
-
-
+		class Fecha:
+			# Date and time in different formats
+			fits_date	= HeaderTest.correct_date(file_header)
+			date_array	= [fits_date[0:4],fits_date[4:6],fits_date[6:8],
+						  fits_date[9:11],fits_date[11:13],fits_date[13:15]]
+			date_string	= date_array[0]+"/"+date_array[1]+"/"+date_array[2]+" "+\
+						  date_array[3]+":"+date_array[4]+":"+date_array[5]
+		class Properties:
+			# Exposure, resolution, filter
+			exposure	= HeaderTest.correct_exposure(file_header)
+			resolution	= HeaderTest.correct_resolution(file_header)
+			used_filter = HeaderTest.correct_filter(file_header)
+	
+	return ImageInfo
 
 class CommonErrors:
-	def name_error(): 
-		print 'Variable not defined.'
+	def name_error(variable): 
+		print 'Variable '+variable+' not defined.'
 	def value_error():
 		print 'Value type error.'
 
 
-def header_correct_exposure(file_header):
-	# Exposure
-	try:
-		texp = float(cabecera_fits['EXPOSURE'])
-	except NameError:
-		CommonErrors.name_error()
-	except ValueError:
-		CommonErrors.value_error()
-	else:
-		assert texp > 0.,
-			'0s exposure time detected.'
-		return texp
+class HeaderTest:
+	def correct_exposure(file_header):
+		# Exposure
+		try:
+			texp = float(file_header['EXPOSURE'])
+		except NameError:
+			CommonErrors.name_error('EXPOSURE')
+		except ValueError:
+			CommonErrors.value_error()
+		else:
+			assert texp>0.,\
+				'0s exposure time detected.'
+			return texp
+	
+	def correct_date(file_header):
+		# Date and time
+		try:
+			date = file_header['DATE']
+		except NameError:
+			CommonErrors.name_error('DATE')
+		else:
+			assert len(date)==6,\
+				'Date format not YYYYMMDD'
+			return date	
+	
+	def correct_resolution(file_header):
+		# Resolution
+		try:
+			resolution = [int(file_header['NAXIS1']),int(file_header['NAXIS2'])]
+		except NameError:
+			CommonErrors.name_error('NAXIS1 or NAXIS2')
+		else:
+			assert resolution[0]>0 and resolution[1]>0,\
+				'Matrix not 2 dimensional'
+			return resolution
+	
+	def correct_filter(file_header):
+		# Test if there's a known filter
+		try:
+			used_filter = file_header['FILTER']
+		except NameError:
+			CommonErrors.name_error('FILTER')
+		else:
+			# due to an inconsistent format in AstMon, 
+			# we found 4 possible formats 'Jonhson_V','JohnsonV','Johnson_V','JonhsonV'
+			used_filter = used_filter.replace('_','')
+			assert used_filter[0:7] in ['Johnson','Jonhson'],\
+				'Filter type not recognized as Johnson system'
+			assert used_filter[7:] in ['U','B','V','R','I'],\
+				'Filter not U,B,V,R or I'
+			return 'Johnson_'+used_filter[7:]
 
-def header_correct_date(file_header):
-	# Date and time
-	try:
-		date = cabecera_fits['DATE']
-	except NameError:
-		CommonErrors.name_error()
-	else:
-		assert len(date)==6,
-			'Date format not YYYYMMDD'
-		return date	
 
-		 
+
 
 
 
