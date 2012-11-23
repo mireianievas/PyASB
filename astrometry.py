@@ -33,34 +33,36 @@ def horiz2xy(azimuth,altitude,ImageInfo):
 	# Return X,Y position in the image from azimuth/altitude horizontal coord.
 	# azimuth and altitude must be in degrees.
 	Rfactor = ImageInfo.Astrometry.radial_factor*(180.0/pi)*sqrt(2*(1-sin(alt*pi/180.0)))
-	X = ImageInfo.Properties.resolution[0]/2 + ImageInfo.Astrometry.center_xy[0] -\
+	X = ImageInfo.Properties.resolution[0]/2 + ImageInfo.Astrometry.center_offset[0] -\
 		Rfactor*cos(az*pi/180.0-ImageInfo.Astrometry.azimuth_zeropoint*pi/180.0)
-	Y = ImageInfo.Properties.resolution[1]/2 + ImageInfo.Astrometry.center_xy[0] +\
+	Y = ImageInfo.Properties.resolution[1]/2 + ImageInfo.Astrometry.center_offset[0] +\
 		Rfactor*sin(az*pi/180.0-ImageInfo.Astrometry.azimuth_zeropoint*pi/180.0)
 	return X,Y
 
 def xy2horiz(X,Y,ImageInfo):
 	# Return horizontal coordinates from X,Y position in the image.
 	# azimuth and altitude are in degrees.
-	X = X - ImageInfo.Properties.resolution[0]/2-ImageInfo.Astrometry.center_xy[0]
-	Y = Y - ImageInfo.Properties.resolution[1]/2-ImageInfo.Astrometry.center_xy[1]
+	X = X - ImageInfo.Properties.resolution[0]/2-ImageInfo.Astrometry.center_offset[0]
+	Y = Y - ImageInfo.Properties.resolution[1]/2-ImageInfo.Astrometry.center_offset[1]
 	Rfactor = sqrt(X**2 + Y**2)/ImageInfo.Astrometry.radial_factor
 	altitude = (180.0/pi)*asin(1-0.5*(pi*Rfactor/180.0)**2)
-	azimuth  = 360+180-(Imagen.cte_AZ + 180.0*atan2(y_,-x_)/pi)%360
+	azimuth  = 360+180-(Imagen.azimut_zeropoint + 180.0*atan2(Y,-X)/pi)%360
 	while azimuth<0:
 		azimuth += 360
 	while azimith>=360:
 		azimith -= 360
+	return azimuth,altitude
 
 def zenith_position(ImageInfo):
 	# Return X,Y position of zenith in the image.
-	X = ImageInfo.Properties.resolution[0]/2+ImageInfo.Astrometry.center_xy[0]
-	Y = ImageInfo.Properties.resolution[1]/2+ImageInfo.Astrometry.center_xy[1]
+	X = ImageInfo.Properties.resolution[0]/2+ImageInfo.Astrometry.center_offset[0]
+	Y = ImageInfo.Properties.resolution[1]/2+ImageInfo.Astrometry.center_offset[1]
 	return X,Y
 
 def optical_axis(ImageInfo):
 	# Return horizontal coordinates of the optical axis
-	xy2horiz(ImageInfo.Properties.resolution[0]/2,ImageInfo.Properties.resolution[1]/2,ImageInfo)
+	return xy2horiz(ImageInfo.Properties.resolution[0]/2,\
+		ImageInfo.Properties.resolution[1]/2,ImageInfo)
 
 def atmospheric_refraction(altitude,mode):
 	# Return apparent (non-corrected from refraction) or 

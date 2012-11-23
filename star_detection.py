@@ -11,64 +11,33 @@ created and maintained by Miguel Nievas [UCM].
 ____________________________
 '''
 
+__author__ = "Miguel Nievas"
+__copyright__ = "Copyright 2012, PyAstMonUCM project"
+__credits__ = ["Miguel Nievas"]
+__license__ = "GPL"
+__version__ = "1.99.0"
+__maintainer__ = "Miguel Nievas"
+__email__ = "miguelnr89[at]gmail[dot]com"
+__status__ = "Prototype" # "Prototype", "Development", or "Production"
+
+
 try:
 	import matplotlib.pyplot as mpl
 	import matplotlib.colors as mpc
 	import matplotlib.patches as mpp
-	from draw_functions import draw_polar_axes
+	from skymap_plot import * 
 except:
 	print 'One or more modules missing: pyfits,HeaderTest'
 	raise SystemExit
 
 
-
-
-def create_skymap(fits_data,StarCatalog,ImageInfo,ObsPyephem):
-	# Create figure and skyimage subplot. 
-	# Set axis, labels, info text and draw stars in catalog.
-	# Return th
-	skyfigure = mpl.figure(figsize=(10,10),dpi=100)
-	skyimage  = skyfigure.add_subplot(111)
-
-	skyimage.set_title('Stars in the catalog and identified stars',size="xx-large")
-	skyimage.imshow(fits_data,norm=mpc.LogNorm(),cmap=cm.gray)
-
-	xpoints = [Star.Xcoord for Star in StarCatalog]
-	ypoints = [Star.Ycoord for Star in StarCatalog]
-
-	skyimage.scatter(xpoints,ypoints,marker='.',c='g',alpha=0.2,label='Star in the catalog')
-	skyimage.axis([0,ImageInfo.Properties.resolution[0],0,	
-		ImageInfo.Properties.resolution[1]])
-	information_skyimage=str(ObsPyephem.date)+" UTC\n"+str(ObsPyephem.lat)+5*" "+\
-		str(ObsPyephem.lon)+"\n"+ImageInfo.Properties.used_filter
-	skyimage.text(0.005,0.005,information_skyimage,fontsize='x-small',color='white',\
-		transform = skyimage.transAxes,backgroundcolor=(0,0,0,0.75))
-	skyimage = draw_polar_axes(skyimage,ImageInfo)
-	skyimage.legend(('In catalog','Detected'),'upper right')
-	return skyfigure,skyimage
-
-def annotate_skymap(skyimage,Star,R1,R2,R3):
-	# Draw identified stars and measuring circles.
-	# Annotate HD catalog code and Magnitude for each star.
-	skyimage.scatter(Star.Xcoord,Star.Ycoord,marker='x',c='r',alpha=0.2,label='Identified stars')
-	skyimage.add_patch(mpp.Circle((Star.Xcoord,Star.Ycoord),R1,facecolor='none',edgecolor=(0,0,0.8),\
-		linewidth=1, fill=False, alpha=0.5,label='_nolegend_'))
-	skyimage.add_patch(mpp.Circle((Star.Xcoord,Star.Ycoord),R2,facecolor='none',edgecolor=(0,0.8,0),\
-		linewidth=1, fill=False, alpha=0.5,label='_nolegend_'))
-	skyimage.add_patch(mpp.Circle((Star.Xcoord,Star.Ycoord),R3,facecolor='none',edgecolor=(0.8,0,0),\
-		linewidth=1, fill=False, alpha=0.5,label='_nolegend_'))
-	skyimage.annotate(Star.HDcode,xy=(Star.Xcoord,Star.Ycoord), xycoords='data',xytext=(0, 3),\
-		textcoords='offset points',fontsize=6)
-	skyimage.annotate(Star.FilterMag,xy=(Estrella.X,Estrella.Y), xycoords='data',xytext=(0,-10),\
-		textcoords='offset points',fontsize=6)
-	return skyimage
-
-def show_or_save_skymap(skyfigure,ImageInfo,ObsPyephem):
-	# Show or save the skymap
-	if ImageInfo.Config.skymap_file=='on_screen':
-		mpl.show(skyfigure)
-	else:
-		mpl.savefig(complete_file_name(ImageInfo))
+def photometry_bouguervar(Star):
+	# Calculate parameters used in bouguer law fit
+	Star.25logF      = 2.5*log10(Star.flux_star)
+	Star.25logF_unc  = (2.5/log(10))*,Star.flux_star_unc/Star.flux_star
+	Star.m25logF     = Star.FilterMag+Star.25logF
+	Star.m25logF_unc = Star.25logF_unc
+	return Star
 
 def star_photometry(fits_data,StarCatalog,ImageInfo,ObsPyephem):
 	'''
@@ -79,12 +48,12 @@ def star_photometry(fits_data,StarCatalog,ImageInfo,ObsPyephem):
 	if ImageInfo.Config.skymap_file!=False:
 		skyfigure,skyimage = create_skymap(fits_data,StarCatalog,ImageInfo,ObsPyephem)
 
-	StarMeasured = []
+	StarsMeasured = []
 	for star_index in range(StarCatalog):
 		Star = StarCatalog[star_index]
 		# Define aperture disk for photometry
 		R1,R2,R3 = aperture_photometry_radius(Star,ImageInfo)
-		pixels1,pixels2,pixels3 = measure_pixels(Star,R1,R2,R3,ImageInfo)
+		pixels1,pixels2,pixels3 = apphot_pixels(Star,R1,R2,R3,ImageInfo)
 		if pixel1==[] or pixel1==[] or pixel3=[]:
 			# Continue with next star, this one is not in the FoV.
 			StarCatalog.pop(star_index)
@@ -103,25 +72,19 @@ def star_photometry(fits_data,StarCatalog,ImageInfo,ObsPyephem):
 		# Delete stars below detection limit or low at sky
 		Star.max_magnitude = magnitude_limit(Star,ImageInfo)
 		Star.min_flux      = flux_lowlimit(Star,ImageInfo)
-
-
+		
 		if Star.FilterMag < Star.max_magnitude and Star.flux_star > Star.min_flux\
 		and Star.altit_appa > ImageInfo.Config.min_altitude:
 			# Fine flux measure and star position (centroid estimation)
 			try:
 				Star.Xcoord,Star.Ycoord = estimate_centroid(fits_data,pixels1+pixels2,Star)
-			except:
-				# Continue with next star, we cannot calculate centroid for this one.
-				raise
-				continue
-
-			# Saturation photometry
-			try:
-				pixels1,pixels2,pixels3 = measure_pixels(Star,R1,R2,R3,ImageInfo)
-				Star.flux_star,Star.flux_star_uncertainty = \
+				pixels1,pixels2,pixels3 = apphot_pixels(Star,R1,R2,R3,ImageInfo)
+				Star.flux_star,Star.flux_star_unc = \
 					precise_star_fluxes(fits_data,pixels1,pixels2,pixels3,R1,R2,ImageInfo)
+				Star=photometry_bouguervar(Star)
 			except:
-				# Continue with next star, we cannot measure fluxes on this.
+				''' Continue with next star, we cannot calculate centroid or measure 
+				    fluxes for this one. '''
 				raise
 				continue
 
@@ -129,7 +92,7 @@ def star_photometry(fits_data,StarCatalog,ImageInfo,ObsPyephem):
 				starmask_pixel.append(pixel)
 				starmask_background.append(Star.flux_background)
 
-			StarMeasured.append(Star)
+			StarsMeasured.append(Star)
 			
 			# If users wants the sky map with annotated stars
 			if ImageInfo.Config.skymap_file!=False:
@@ -139,7 +102,7 @@ def star_photometry(fits_data,StarCatalog,ImageInfo,ObsPyephem):
 		# Show or save the map
 		show_or_save_skymap(skyfigure,ImageInfo,ObsPyephem)
 			
-
+	return StarsMeasured
 
 		
 
