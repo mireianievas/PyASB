@@ -26,7 +26,6 @@ try:
 	import matplotlib.pyplot as mpl
 	import matplotlib.colors as mpc
 	import matplotlib.patches as mpp
-	from skymap_plot import * 
 except:
 	print 'One or more modules missing: pyfits,HeaderTest'
 	raise SystemExit
@@ -46,10 +45,47 @@ def bouguer_fit(StarMeasured, ImageInfo, ObsPyephem):
 			fixed_y     = ImageInfo.Config.y
 			fixed_y_unc = ImageInfo.Config.y_unc
 		Regression = theil_sen(Regression,fixed_zp)
+		return Regression
 	except:
-		Regression = theil_sen(Regression)
+		try:
+			Regression = theil_sen(Regression)
+			return Regression
+		except:
+			raise
 
-			
+def bouguer_plot(Regression,ImageInfo,ObsPyephem):
+	''' Plot photometric data from the bouguer fit '''
+
+	xfit = linspace(1,calculate_airmass(ImageInfo.Config.min_altitude),10)
+	yfit = polyval([Regression.slope,Regression.zp],xfit)
+
+	xdata    = Regression.xdata
+	ydata    = Regression.ydata
+	yerrdata = Regression.yerrdata
+
+	bouguerfigure = figure(figsize=(8,6),dpi=100)
+	bouguerplot = figurabouguer.add_subplot(111)
+	bouguerplot.set_title('Bouguer extinction law fit',size="xx-large")
+	bouguerplot.errorbar(xdata, ydata, yerr=yerrdata, fmt='*', ecolor='g')
+	bouguerplot.plot(x_fit,y_fit,'r-')
+	
+	try:
+		plot_infotext = \
+			ImageInfo.imagesdate+str(ObsPyephem.lat)+5*" "+str(ObsPyephem.lon)+"\n"+\
+			ImageInfo.used_filter+4*" "+"Rcorr="+str("%.3f"%float(Regression.Kendall_tau))+"\n"+\
+			"C="+str("%.3f"%float(Regression.zp))+"+/-"+str("%.3f"%float(Regression.zp_err))+"\n"+\
+			"K="+str("%.3f"%float(Regression.slope))+"+/-"+str("%.3f"%float(Regression.slope_err))+"\n"+\
+			str("%.0f"%(100.*Regression.Nrel))+"% of "+str(Norig)+" photometric measures shown"
+		bouguerplot.text(0.1,0.1,plot_infotext,fontsize='x-small',transform = plot_infotext.transAxes)
+	except:
+		raise
+	
+	if ImageInfo.Config.bouguerplot_file!=False:
+		# Show or save the bouguer plot
+		show_or_save_bouguerplot(bouguerfigure,ImageInfo,ObsPyephem)
+
+
+
 	
 
 
