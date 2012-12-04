@@ -39,12 +39,13 @@ def photometry_bouguervar(Star):
 	Star.m25logF_unc = Star.25logF_unc
 	return Star
 
-def star_photometry(fits_data,StarCatalog,ImageInfo,ObsPyephem):
+def stellar_photometry(fits_data,StarCatalog,ImageInfo,ObsPyephem):
 	'''
 	This function measures fluxes for Star in the StarCatalog
 	and give the neccesary measures to fit a Bouguer extinction law.
 	'''
-	
+	filtered_fits_data = deepcopy(fits_data)
+
 	if ImageInfo.Config.skymap_file!=False:
 		skyfigure,skyimage = create_skymap(fits_data,StarCatalog,ImageInfo,ObsPyephem)
 
@@ -60,14 +61,12 @@ def star_photometry(fits_data,StarCatalog,ImageInfo,ObsPyephem):
 			continue
 		
 		# Coarse flux measure
-		Star.flux_star,Star.flux_background = aproximate_fluxes(fits_data,\
-			pixels1,pixels3,ImageInfo)
-		# NOTE: flux_background is absolute, not normalized.
+		Star.flux_star,Star.flux_sky = aproximate_fluxes(fits_data,pixels1,pixels3,ImageInfo)
+		# NOTE: flux_sky is absolute, not normalized.
 		
-		# Blacklist star positions for future background SB measures
+		# Filter the fits matrix for future background SB measures
 		for pixel in pixels1+pixels2:
-			starmask_pixel.append(pixel)
-			starmask_background.append(Star.flux_background)
+			filtered_fits_data[pixel[0]][pixel[1]] = Star.flux_sky
 		
 		# Delete stars below detection limit or low at sky
 		Star.max_magnitude = magnitude_limit(Star,ImageInfo)
@@ -75,33 +74,33 @@ def star_photometry(fits_data,StarCatalog,ImageInfo,ObsPyephem):
 		
 		if Star.FilterMag < Star.max_magnitude and Star.flux_star > Star.min_flux\
 		and Star.altit_appa > ImageInfo.Config.min_altitude:
-			# Fine flux measure and star position (centroid estimation)
 			try:
+				# Fine flux measure and star position (centroid estimation)
 				Star.Xcoord,Star.Ycoord = estimate_centroid(fits_data,pixels1+pixels2,Star)
 				pixels1,pixels2,pixels3 = apphot_pixels(Star,R1,R2,R3,ImageInfo)
-				Star.flux_star,Star.flux_star_unc = \
-					precise_star_fluxes(fits_data,pixels1,pixels2,pixels3,R1,R2,ImageInfo)
+				Star.flux_sky,Star.flux_sky_err   = sky_flux_measure(fits_data,pixels3,ImageInfo)
+				Star.flux_star,Star.flux_star_err = \
+					star_flux_measure(fits_data,pixels1,Star.flux_sky,Star.flux_sky_err,ImageInfo)
+				# Log of flux and m+2.5logF, needed for bouguer law fit
 				Star=photometry_bouguervar(Star)
+				# Filter the fits matrix for future background SB measures
+				for pixel in pixels1+pixels2:
+					filtered_fits_data[pixel[0]][pixel[1]] = Star.flux_sky
+				# Append to the measured star list and plot it if neccesary
+				StarsMeasured.append(Star)
+				if ImageInfo.Config.skymap_file!=False:
+					skyimage = annotate_skymap(skyimage,Star,R1,R2,R3)
+
 			except:
 				''' Continue with next star, we cannot calculate centroid or measure 
 				    fluxes for this one. '''
-				raise
+				print 'Cannot measure fluxes on '+str(Star.HDcode)+'. Trying next star...'
 				continue
 
-			for pixel in pixels1:
-				starmask_pixel.append(pixel)
-				starmask_background.append(Star.flux_background)
-
-			StarsMeasured.append(Star)
-			
-			# If users wants the sky map with annotated stars
-			if ImageInfo.Config.skymap_file!=False:
-				skyimage = annotate_skymap(skyimage,Star,R1,R2,R3)
-	
 	if ImageInfo.Config.skymap_file!=False:
 		# Show or save the map
 		show_or_save_skymap(skyfigure,ImageInfo,ObsPyephem)
-			
+	
 	return StarsMeasured
 
 		
