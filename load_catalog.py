@@ -15,6 +15,7 @@ ____________________________
 try:
 	import ephem
 	import CommonErrors, HeaderTest
+	from astrometry import atmospheric_refraction,calculate_airmass
 except:
 	print 'One or more modules missing: pyfits,CommonErrors,HeaderTest'
 	raise SystemExit
@@ -152,17 +153,23 @@ def imagedep_properties_catalog(StarCatalog,ObsPyephem,ImageInfo):
 				StarCatalog[line].zdist_real = 90.0-StarCatalog[line].altit_real
 				StarCatalog[line].azimuth    = float(pyephem_star.az)
 				# Apparent coordinates in sky. Atmospheric refraction effect.
-				StarCatalog[line].altit_appa = atm_refract(StarCatalog[line].altit_real,'dir')
+				StarCatalog[line].altit_appa = atmospheric_refraction(StarCatalog[line].altit_real,'dir')
 				StarCatalog[line].zdist_appa = 90.0-StarCatalog[line].altit_apar
+				StarCatalog[line].airmass    = calculate_airmass(StarCatalog[line].altit_appa)
+				# Photometric properties
+				Starfilter = actual_filter(StarCatalog[line],ImageInfo)
+				StarCatalog[line].FilterMag = Starfilter.Mag
+				StarCatalog[line].Color     = Starfilter.Color
 				# Image coordinates
 				XYCoordinates = horiz2xy(StarCatalog[line].azimuth,\
 					StarCatalog[line].altit_appa,ImageInfo)
 				StarCatalog[line].Xcoord = XYCoordinates[0]
 				StarCatalog[line].Ycoord = XYCoordinates[1]
-				# Photometric properties
-				Starfilter = actual_filter(StarCatalog[line],ImageInfo)
-				StarCatalog[line].FilterMag = Starfilter.Mag
-				StarCatalog[line].Color     = Starfilter.Color
+				if StarCatalog[line].Xcoord<0. or StarCatalog[line].Ycoord<0.\
+				or StarCatalog[line].Xcoord>ImageInfo.Properties.resolution[0] \
+				or StarCatalog[line].Ycoord>ImageInfo.Properties.resolution[1]:
+					# Star doesn't fit in the image
+					StarCatalog.pop(line)
 			else:
 				StarCatalog.pop(line)
 		except:

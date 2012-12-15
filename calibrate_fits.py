@@ -12,9 +12,15 @@ created and maintained by Miguel Nievas [UCM].
 ____________________________
 '''
 
-import pyfits
-import numpy as np
-from load_fitsimage import HeaderTest, CommonErrors
+try:
+	import pyfits
+	import numpy as np
+	import HeaderTest, CommonErrors
+except:
+	print 'One or more modules missing: pyfits,CommonErrors,HeaderTest'
+	raise SystemExit
+
+import HeaderTest,CommonErrors
 
 __author__ = "Miguel Nievas"
 __copyright__ = "Copyright 2012, PyAstMonUCM project"
@@ -101,7 +107,7 @@ def divide_flatfield(ScienceImage,FlatField):
 
 def calibrate_image(ScienceImage,MasterDark=None,FlatField=None,MasterBias=None,MasterDarkFlat=None):
 	# Returns calibrated image with Dark, Flat, Bias
-	if MasterDark!=None
+	if MasterDark!=None:
 		if MasterBias!=None:
 			science_exposure = correct_exposure(ScienceImage[0].data)
 			MasterDark = scale_darkframe(MasterDark,MasterBias,science_exposure)
