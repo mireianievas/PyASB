@@ -28,7 +28,7 @@ try:
 	import matplotlib.colors as mpc
 	import matplotlib.patches as mpp
 except:
-	print 'One or more modules missing: pyfits,HeaderTest'
+	print('One or more modules missing: pyfits,HeaderTest')
 	raise SystemExit
 
 
@@ -40,7 +40,7 @@ class SkyBrightness():
 		ImageInfo and Regression.
 	'''
 	def __init__(self,fits_data,ImageInfo,Regression):
-		print 'SkyBrightness(): Loading calibration data ...',
+		print('SkyBrightness(): Loading calibration data ...'),
 		try:
 			self.fits_data = fits_data
 			self.exposure    = ImageInfo.Properties.exposure
@@ -48,9 +48,10 @@ class SkyBrightness():
 			self.zp        = Regression.zp
 			self.zp_err    = Regression.zp_err
 		except:
+			print('Failed')
 			raise
 		else:
-			print 'OK'
+			print('OK')
 		
 	''' Image processing '''
 	def _sky_brightness_measure(self,image_region):
@@ -84,7 +85,7 @@ class SkyBrightness():
 		Measure sky brightness only at selected points in the sky
 		Return the sky brightness table
 		'''
-		print 'SkyBrightness(): Measuring Sky Brightness on the standard grid ...',
+		print('SkyBrightness(): Measuring Sky Brightness on the standard grid ...'),
 		try:
 			radius = 50 # px
 			self.ALTgrid = np.arange(10,90+1,10) # degrees
@@ -92,16 +93,17 @@ class SkyBrightness():
 			self.SBgrid  = [_sky_brightness_region(self,az,alt,radius) \
 				for az in self.SBazlist for alt in self.SBaltlist]
 		except:
+			print('Failed')
 			raise
 		else:
-			print 'OK'
+			print('OK')
 	
 	def measure_positions(self,AZlist,ALTlist,RADlist=None):
 		'''
 		Measure sky brightness only at special selected regions (zenith p.e.)
 		AZlist (deg), ALTlist (deg) and RAD (optional, in pixels) are lists
 		'''
-		print 'SkyBrightness(): Measuring Sky Brightness on selected positions ...',
+		print('SkyBrightness(): Measuring Sky Brightness on selected positions ...'),
 		try:
 			AZlist[len(ALTlist)-1];
 			ALTlist[len(AZlist)-1];
@@ -113,16 +115,17 @@ class SkyBrightness():
 			self.SBselected  = [sky_brightness_region(self,AZlist[k],ALTlist[k],RADlist[k]) \
 				for k in range(len(AZlist))]
 		except:
+			print('Failed')
 			raise
 		else:
-			print 'OK'
+			print('OK')
 
 class SkyBrightnessGraph():
 	'''
 	Class with Sky Brightness graph methods
 	'''
 	def __init__(self,SkyBrightness,ImageInfo,ObsPyephem,Regression):
-		print 'SkyBrightnessGraph(): parameters and data loading ...',
+		print('SkyBrightnessGraph(): parameters and data loading ...'),
 		try:
 			# Measures
 			self.AZgrid  = SkyBrightness.AZgrid  *pi/180.                   # degrees
@@ -151,26 +154,28 @@ class SkyBrightnessGraph():
 			# Observatory
 			self.ObsPyephem = ObsPyephem
 		except:
+			print('Failed')
 			raise
 		else:
-			print 'OK'
+			print('OK')
 	
 	def grid_data(self):
 		'''
 		Grid scattered data
 		'''
-		print 'SkyBrightnessGraph(): gridding data ...',
+		print('SkyBrightnessGraph(): gridding data ...'),
 		try:
 			self.Radiali  = np.linspace(0*pi/180,75*pi/180,76)
 			self.AZgridi  = np.linspace(0,360*pi/180,361)
 			self.Fluxi    = griddata((self.AZgrid,self.Radial),self.Flux,\
-				(self.azimuthi[None,:],self.radiali[:,None]),method='linear',\ 
+				(self.azimuthi[None,:],self.radiali[:,None]),method='linear',\
 				fill_value=min(self.Flux))
 			self.SBgridi  = -2.5*log10(self.Fluxi)
 		except:
+			print('Failed')
 			raise
 		else:
-			print 'OK'
+			print('OK')
 	
 	def define_contours(self):
 		'''
@@ -199,7 +204,7 @@ class SkyBrightnessGraph():
 		'''
 		Interpolate and plot the Sky Brightness map
 		'''
-		print 'SkyBrightnessGraph(): ploting data ...',
+		print('SkyBrightnessGraph(): ploting data ...'),
 		try:
 			SBfigure = plt.figure(figsize=(8,8),dpi=100)
 			SBgraph  = SBfigure.add_subplot(111,projection='polar')
@@ -247,8 +252,9 @@ class SkyBrightnessGraph():
 				savefig(output_file_name(writefile,self.ObsPyephem.date,self.ImageFilter))
 			close(SBfigure); 
 		except:
+			print('Failed')
 			raise
 		else:
-			print 'OK'
+			print('OK')
 
 		

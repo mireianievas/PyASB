@@ -30,151 +30,138 @@ __email__ = "miguelnr89[at]gmail[dot]com"
 __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 
-def open_catalog_file(catalog_filename='ducati_catalog.tsv'):
-	# Open catalog file and return its content
-	try: 
-		tabseparated_catalog = [ line[:-1] for line in \
-			open(catalog_filename, 'r').readlines() ]
-	except IOError:
-		print 'IOError. Error opening file '+catalog_filename+'.'
-		return 1
-	except:
-		print 'Unknown error:'
-		raise
-		return 2
-	else:
-		print 'File '+str(catalog_filename)+' opened correctly.'
-		return tabseparated_catalog
-
-class StarObject:
-	''' # Object Star. Original catalog values :
-	    # recno, HDcode, RA1950, DEC1950, Vmag, U_V, B_V, R_V, I_V '''
-	pass
-
-def coord_pyephem_format(coord_str):
-	# Return coordinate in pyepheem str
-	coord_separated = coord_str.split()
-	coord_pyephem = str(int(coord_separated[0]))+\
-		':'+str(int(coord_separated[1]))+str(int(coord_separated[2]))
-	return coord_pyephem
-
-def build_pyastmon_catalog(tabseparated_catalog):
-	'''
-	Read catalog lines, extract Star properties and put them
-	in Object array. 
-	Properties are image independent
-	'''
+class CatalogStar():
+	''' Extract information for each Star in the Catalog '''
 	
-	print 'Reading catalog ...'
-	# Catalog starts when -------- detected at the begining of the line
-	startline = 0
-	while tabseparated_catalog[startline][0:8] != 8*'-':
-		startline+=1
+	def __init__(self,CatalogLine,ObsPyephem,ImageInfo):
+		self.basic_properties(CatalogLine)
+		self.imagedep_properties(ObsPyephem,ImageInfo)
+		self.destroy = False
 	
-	# Build catalog matrix without header
-	tabseparated_catalog = [ tabseparated_catalog[line] for line in \
-		range(len(tabseparated_catalog)) if line>startline ]
-
-	# Build StarCatalog (array of StarObject)
-	StarCatalog = [ StarObject for line in tabseparated_catalog]
-
-	for line in range(len(tabseparated_catalog)-1,0-1,-1):
+	def coord_pyephem_format(self,coord_str):
+		# Return coordinate in pyepheem str
+		coord_separated = coord_str.split()
+		coord_pyephem = str(int(coord_separated[0]))+\
+			':'+str(int(coord_separated[1]))+str(int(coord_separated[2]))
+		return coord_pyephem
+			
+	def basic_properties(self,CatalogLine):
+		''' Object Star. Original catalog values :
+			recno, HDcode, RA1950, DEC1950, Vmag, U_V, B_V, R_V, I_V '''		
+		self.recno   = int(CatalogLine[0])
+		self.HDcode  = str(CatalogLine[1]).replace(' ','')
+		self.RA1950  = self.coord_pyephem_format(CatalogLine[2])
+		self.DEC1950 = self.coord_pyephem_format(CatalogLine[3])
+		self.Vmag    = float(CatalogLine[4])
+		self.U_V     = float(CatalogLine[5])
+		self.B_V     = float(CatalogLine[6])
+		self.R_V     = float(CatalogLine[7])
+		self.I_V     = float(CatalogLine[8])
 		try:
-			tabseparated_catalog_split = tabseparated_catalog.split('\t')
-			StarCatalog[line].recno   = int(tabseparated_catalog_split[0])
-			StarCatalog[line].HDcode  = str(tabseparated_catalog_split[1]).replace(' ','')
-			StarCatalog[line].RA1950  = coord_pyephem_format(tabseparated_catalog_split[2])
-			StarCatalog[line].DEC1950 = coord_pyephem_format(tabseparated_catalog_split[3])
-			StarCatalog[line].Vmag    = float(tabseparated_catalog_split[4])
-			StarCatalog[line].U_V     = float(tabseparated_catalog_split[5])
-			StarCatalog[line].B_V     = float(tabseparated_catalog_split[6])
-			StarCatalog[line].R_V     = float(tabseparated_catalog_split[7])
-			StarCatalog[line].I_V     = float(tabseparated_catalog_split[8])
-
-			try: 
-				StarCatalog[line].name = str(tabseparated_catalog_split[9])
-			except:
-				StarCatalog[line].name = str(tabseparated_catalog_split[1])
-
-			StarCatalog[line].Umag = StarCatalog[line].Vmag + StarCatalog[line].U_V
-			StarCatalog[line].Bmag = StarCatalog[line].Vmag + StarCatalog[line].B_V 
-			StarCatalog[line].Rmag = StarCatalog[line].Vmag + StarCatalog[line].R_V
-			StarCatalog[line].Imag = StarCatalog[line].Vmag + StarCatalog[line].I_V
+			''' Try to find the common name '''
+			self.name = str(CatalogLine[9])
 		except:
-			print 'Error loading star '+line+', deleting from catalog... '
-			raise
-			StarCatalog.pop(line)
+			''' Use the HDcode as name '''
+			self.name = self.HDcode
+		self.Umag = self.Vmag + self.U_V
+		self.Bmag = self.Vmag + self.B_V 
+		self.Rmag = self.Vmag + self.R_V
+		self.Imag = self.Vmag + self.I_V
+
+	def imagedep_properties(self,ObsPyephem,ImageInfo):
+		'''
+		Calculate star position and dynamic properties.
+		Don't proceed if the star altitude < 0.
+		Return updated StarCatalog (image dependent)
+		'''
 	
-	return StarCatalog
-
-def imagedep_properties_catalog(StarCatalog,ObsPyephem,ImageInfo):
-	'''
-	Calculate star position and dynamic properties.
-	Don't proceed if the star altitude < 0.
-	Return updated StarCatalog (image dependent)
-	'''
-
-	def pyephem_declaration(Star):
-		# Define the star in Pyephem to make astrometric calculations
-		pyephem_star = ephem.readdb('"'+Star.name+'"'+",f|S|A0,"+Star.RA1950+'|0'+\
-			","+Star.DEC1950+'|0'+","+Star.Vmag+',1950,0"')
-		pyephem_star.compute(ObsPyephem)	
-		return pyephem_star
-
-	def actual_filter(Star,ImageInfo):
-		# Test which filter is in use
-		used_filter = ImageInfo.Properties.used_filter
-		class StarFilter:
+		def pyephem_declaration(self,ObsPyephem):
+			# Define the star in Pyephem to make astrometric calculations
+			pyephem_star = ephem.readdb('"'+self.name+'"'+",f|S|A0,"+self.RA1950+'|0'+\
+				","+Star.DEC1950+'|0'+","+self.Vmag+',1950,0"')
+			pyephem_star.compute(ObsPyephem)	
+			return pyephem_star
+	
+		def set_actual_filter(self,ImageInfo):
+			# Test which filter is in use
+			used_filter = ImageInfo.Properties.used_filter
 			if used_filter=="JohnsonU":
-				Mag   = Star.Umag
-				Color = Star.U_V
+				self.FilterMag = self.Umag
+				self.Color     = self.U_V
 			elif used_filter=="JohnsonB":
-				Mag   = Star.Umag
-				Color = Star.U_V
+				self.FilterMag = self.Umag
+				self.Color     = self.U_V
 			elif used_filter=="JohnsonV":
-				Mag   = Star.Vmag
-				Color = 0.0
+				self.FilterMag = self.Vmag
+				self.Color     = 0.0
 			elif used_filter=="JohnsonR":
-				Mag   = Star.Rmag
-				Color = Star.R_V
+				self.FilterMag = self.Rmag
+				self.Color     = self.R_V
 			elif used_filter=="JohnsonI":
-				Mag   = Star.Imag
-				Color = Star.I_V
+				self.FilterMag = self.Imag
+				self.Color     = self.I_V
 			else:
 				pass
-		return StarFilter
-	
-	for line in range(len(StarCatalog)-1,0-1,-1):
+		
 		try:
 			pyephem_star = PyephemDeclaration(StarCatalog[line])
 			if float(pyephem_star.alt) > 0.0:
 				# Real coordinates (from catalog)
-				StarCatalog[line].altit_real = float(pyephem_star.alt)
-				StarCatalog[line].zdist_real = 90.0-StarCatalog[line].altit_real
-				StarCatalog[line].azimuth    = float(pyephem_star.az)
+				self.altit_real = float(pyephem_star.alt)
+				self.zdist_real = 90.0-StarCatalog[line].altit_real
+				self.azimuth    = float(pyephem_star.az)
 				# Apparent coordinates in sky. Atmospheric refraction effect.
-				StarCatalog[line].altit_appa = atmospheric_refraction(StarCatalog[line].altit_real,'dir')
-				StarCatalog[line].zdist_appa = 90.0-StarCatalog[line].altit_apar
-				StarCatalog[line].airmass    = calculate_airmass(StarCatalog[line].altit_appa)
+				self.altit_appa = atmospheric_refraction(StarCatalog[line].altit_real,'dir')
+				self.zdist_appa = 90.0-StarCatalog[line].altit_apar
+				self.airmass    = calculate_airmass(StarCatalog[line].altit_appa)
 				# Photometric properties
-				Starfilter = actual_filter(StarCatalog[line],ImageInfo)
-				StarCatalog[line].FilterMag = Starfilter.Mag
-				StarCatalog[line].Color     = Starfilter.Color
+				set_actual_filter(ImageInfo)
 				# Image coordinates
 				XYCoordinates = horiz2xy(StarCatalog[line].azimuth,\
 					StarCatalog[line].altit_appa,ImageInfo)
-				StarCatalog[line].Xcoord = XYCoordinates[0]
-				StarCatalog[line].Ycoord = XYCoordinates[1]
-				if StarCatalog[line].Xcoord<0. or StarCatalog[line].Ycoord<0.\
-				or StarCatalog[line].Xcoord>ImageInfo.Properties.resolution[0] \
-				or StarCatalog[line].Ycoord>ImageInfo.Properties.resolution[1]:
-					# Star doesn't fit in the image
-					StarCatalog.pop(line)
-			else:
-				StarCatalog.pop(line)
+				self.Xcoord = XYCoordinates[0]
+				self.Ycoord = XYCoordinates[1]
+			
+			if self.Xcoord<0. or self.Ycoord<0.or self.Xcoord>ImageInfo.Properties.resolution[0] \
+			or self.Ycoord>ImageInfo.Properties.resolution[1] or self.altit_real < 0.0:
+				# Star doesn't fit in the image
+				self.destroy = True
 		except:
-			StarCatalog.pop(line)
+			self.destroy = True
+
+class CatalogFile():
+	''' Catalog with Star photometry in U,B,V,R,I bands '''
+	def __init__(self,catalog_filename):
+		# Open catalog file and return its content
+		try:
+			self.file = open(catalog_filename, 'r')
+			self.CatalogLines = [ line[:-1] for line in self.file.readlines() ]
+		except IOError:
+			print('IOError. Error opening file '+catalog_filename+'.')
+			#return 1
+		except:
+			print('Unknown error:')
+			raise
+			#return 2
+		else:
+			print('File '+str(catalog_filename)+' opened correctly.')
 	
+	def __del__(self):
+		print('Closing file ...'),
+		self.file.close()
+		print('OK')
 
-	return StarCatalog
-
+class PhotometricCatalog():
+	''' This class processes the entire catalog '''
+	def __init__(self,ObsPyephem,ImageInfo,catalog_filename='ducati_catalog.tsv'):
+		RawCatalog = CatalogFile(catalog_filename)
+		# Calculate some properties for each star
+		ProcessedCatalog = [CatalogStar(Star,ObsPyephem,ImageInfo) \
+			for Star in RawCatalog.CatalogLines]
+		# Filter the catalog
+		self.Stars = [Star for Star in ProcessedCatalog if Star.destroy==False]
+		RawCatalog.__del__()
+	def __del__(self):
+		print('Deleting catalog ...'),
+		del(self)
+		print('OK')
