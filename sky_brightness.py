@@ -208,10 +208,11 @@ class SkyBrightnessGraph():
 				
 			define_contours(self)
 			
+			# Contours
 			SBcontours = SBgraph.contourf(self.AZgridi,self.Radiali,self.SBgridi,\
 				cmap=cm.YlGnBu,levels=self.level_list)
 		
-		
+			# Radial/azimuthal ticks and locators
 			radial_locator = [ (num+1)*pi/18 for num in range(7) ]
 			radial_label = ["$80$","$70$","$60$","$50$","$40$","$30$","$20$","$10$","$0$"]
 			theta_locator = [ 45*num for num in range(8)]
@@ -222,14 +223,16 @@ class SkyBrightnessGraph():
 			SBgraph.set_theta_offset(pi/2)
 			SBgraph.grid(linewidth=0.8)
 		
-			''' Separation between colour bar and graph '''
+			# Separation between colour bar and graph
 			subplots_adjust(right=1)
-			''' Color bar '''
+			
+			# Color bar 
 			SBcolorbar = colorbar(SBcontours,orientation='vertical',shrink=0.85)
 			subplots_adjust(right=0.80)
 			SBcolorbar.set_ticks(self.label_list,update_ticks=self.update_ticks)
 			SBcolorbar.set_label("mag/arcsec2",rotation="vertical",size="large")
 
+			# Image information
 			image_information = str(self.ObsPyephem.date)+" UTC\n"+str(self.ObsPyephem.lat)+5*" "+\
 				str(self.ObsPyephem.lon)+"\n"+self.ImageFilter+4*" "+self.extinction_str+\
 				str("%.2f" % float(self.SBzenith))+"+-"+str("%.2f" % float(self.SBzenith_err))+\
@@ -237,11 +240,15 @@ class SkyBrightnessGraph():
 	
 			SBgraph.text(5*pi/4,125*pi/180,unicode(image_information,'utf-8'),fontsize='x-small')
 	
-			''' Show or save the graph '''
+			# Show or save the graph
 			if onscreen == True:
 				show(figurafondocielo)
 			if writefile != False:
 				savefig(output_file_name(writefile,self.ObsPyephem.date,self.ImageFilter))
-			close(figurafondocielo); 
+			close(SBfigure); 
+		except:
+			raise
+		else:
+			print 'OK'
 
 		
