@@ -28,22 +28,30 @@ __maintainer__ = "Miguel Nievas"
 __email__ = "miguelnr89[at]gmail[dot]com"
 __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
-def load_image(input_file):
-	# Image loading function
-	try: 
-		file_opened = pyfits.open(fichero_imagen)
-		file_data   = file_opened[0].data
-		fits_header = file_opened[0].header
-	except IOError:	
-		print 'IOError. Error opening file '+fichero_imagen+'.'
-		return 1
-	except:
-		print 'Unknown error:'
-		raise
-		return 2
-	else:
-		print 'File '+str(input_file)+' opened correctly.'
-		return fits_data,fits_header
+class FitsImage():
+	def __init__(self,input_file):
+		
+		self.load_image(input_file)
+		
+		
+	def load_image(self,input_file):
+		# Image loading function
+		try: 
+			self.file_opened = pyfits.open(fichero_imagen)
+			self.file_data   = file_opened[0].data
+			self.fits_header = file_opened[0].header
+		except IOError:	
+			print 'IOError. Error opening file '+fichero_imagen+'.'
+			return 1
+		except:
+			print 'Unknown error:'
+			raise
+			return 2
+		else:
+			print 'File '+str(input_file)+' opened correctly.'
+			return fits_data,fits_header
+		
+		def __del__(self)
 
 def image_extract_info(fits_header):
 	'''
