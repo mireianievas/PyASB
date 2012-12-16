@@ -54,7 +54,7 @@ def stellar_photometry(fits_data,StarCatalog,ImageInfo,ObsPyephem):
 		Star = StarCatalog[star_index]
 		# Define aperture disk for photometry
 		R1,R2,R3 = aperture_photometry_radius(Star,ImageInfo)
-		pixels1,pixels2,pixels3 = apphot_pixels(Star,R1,R2,R3,ImageInfo)
+		pixels1,pixels2,pixels3 = apphot_pixels(Star.Xcoord,Star.Ycoord,R1,R2,R3,ImageInfo)
 		if pixel1==[] or pixel1==[] or pixel3=[]:
 			# Continue with next star, this one is not in the FoV.
 			StarCatalog.pop(star_index)
@@ -77,7 +77,8 @@ def stellar_photometry(fits_data,StarCatalog,ImageInfo,ObsPyephem):
 			try:
 				# Fine flux measure and star position (centroid estimation)
 				Star.Xcoord,Star.Ycoord = estimate_centroid(fits_data,pixels1+pixels2,Star)
-				pixels1,pixels2,pixels3 = apphot_pixels(Star,R1,R2,R3,ImageInfo)
+				pixels1,pixels2,pixels3 = \
+					apphot_pixels(Star.Xcoord,Star.Ycoord,R1,R2,R3,ImageInfo)
 				Star.flux_sky,Star.flux_sky_err   = sky_flux_measure(fits_data,pixels3,ImageInfo)
 				Star.flux_star,Star.flux_star_err = \
 					star_flux_measure(fits_data,pixels1,Star.flux_sky,Star.flux_sky_err,ImageInfo)
@@ -101,7 +102,7 @@ def stellar_photometry(fits_data,StarCatalog,ImageInfo,ObsPyephem):
 		# Show or save the map
 		show_or_save_skymap(skyfigure,ImageInfo,ObsPyephem)
 	
-	return StarsMeasured
+	return StarsMeasured,filtered_fits_data
 
 		
 
