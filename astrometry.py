@@ -12,7 +12,12 @@ ____________________________
 '''
 
 try:
+	import numpy as np
 	from math import pi,sin,cos,sqrt,atan2,asin
+	'''from math import pi
+	from numpy import sin,cos,sqrt
+	from numpy import arctan2 as atan2
+	from numpy import arcsin as asin'''
 	import ephem
 	import CommonErrors, HeaderTest
 except:
