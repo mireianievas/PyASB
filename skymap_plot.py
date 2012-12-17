@@ -33,9 +33,9 @@ except:
 
 class SkyMap():
 	'''	SkyMap class '''
-	def __init__(fits_data,StarCatalog,ImageInfo,ObsPyephem):
+	def __init__(fits_data,MeasuredCatalog,ImageInfo,ObsPyephem):
 		self.fits_data = fits_data
-		self.StarCatalog = StarCatalog
+		self.MeasuredCatalog = MeasuredCatalog
 		self.ImageInfo = ImageInfo
 		self.ObsPyephem = ObsPyephem
 		
@@ -51,8 +51,8 @@ class SkyMap():
 		self.skyimage.set_title('Stars in the catalog and identified stars',size="xx-large")
 		self.skyimage.imshow(self.fits_data,norm=mpc.LogNorm(),cmap=cm.gray)
 	
-		xpoints = [Star.Xcoord for Star in self.StarCatalog.Stars]
-		ypoints = [Star.Ycoord for Star in self.StarCatalog.Stars]
+		xpoints = [Star.Xcoord for Star in self.StarCatalog.StarsOriginal]
+		ypoints = [Star.Ycoord for Star in self.StarCatalog.StarsOriginal]
 	
 		self.skyimage.scatter(xpoints,ypoints,marker='.',c='g',alpha=0.2,label='Star in the catalog')
 		self.skyimage.axis([0,self.ImageInfo.resolution[0],0,self.ImageInfo.resolution[1]])
@@ -62,7 +62,6 @@ class SkyMap():
 			transform = self.skyimage.transAxes,backgroundcolor=(0,0,0,0.75))
 		self.skyimage = draw_polar_axes(self.skyimage,self.ImageInfo)
 		self.skyimage.legend(('In catalog','Detected'),'upper right')
-
 
 	def _draw_polar_axes(self):
 		''' Draw polar axes on the image '''
@@ -130,7 +129,6 @@ class SkyMap():
 			textcoords='offset points',fontsize=6)
 		self.skyimage.annotate(Star.FilterMag,xy=(Estrella.X,Estrella.Y), xycoords='data',xytext=(0,-10),\
 			textcoords='offset points',fontsize=6)
-		return self.skyimage
 	
 	def show_or_save_skymap(self):
 		# Show or save the skymap
