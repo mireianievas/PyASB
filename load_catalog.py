@@ -14,7 +14,6 @@ ____________________________
 
 try:
 	import ephem
-	import CommonErrors, HeaderTest
 	from astrometry import atmospheric_refraction,calculate_airmass
 except:
 	print 'One or more modules missing: pyfits,CommonErrors,HeaderTest'
@@ -67,63 +66,60 @@ class CatalogStar():
 		self.Bmag = self.Vmag + self.B_V 
 		self.Rmag = self.Vmag + self.R_V
 		self.Imag = self.Vmag + self.I_V
+		
+	def pyephem_declaration(self,ObsPyephem):
+		''' Define the star in Pyephem to make astrometric calculations '''
+		pyephem_star = ephem.readdb('"'+self.name+'"'+",f|S|A0,"+self.RA1950+'|0'+\
+			","+Star.DEC1950+'|0'+","+self.Vmag+',1950,0"')
+		pyephem_star.compute(ObsPyephem)	
+		return pyephem_star
+	
+	def set_actual_filter(self,ImageInfo):
+		''' Test which filter is in use '''
+		used_filter = ImageInfo.used_filter
+		if used_filter=="JohnsonU":
+			self.FilterMag = self.Umag
+			self.Color     = self.U_V
+		elif used_filter=="JohnsonB":
+			self.FilterMag = self.Umag
+			self.Color     = self.U_V
+		elif used_filter=="JohnsonV":
+			self.FilterMag = self.Vmag
+			self.Color     = 0.0
+		elif used_filter=="JohnsonR":
+			self.FilterMag = self.Rmag
+			self.Color     = self.R_V
+		elif used_filter=="JohnsonI":
+			self.FilterMag = self.Imag
+			self.Color     = self.I_V
+		else: pass
 
 	def imagedep_properties(self,ObsPyephem,ImageInfo):
 		'''
 		Calculate star position and dynamic properties.
 		Don't proceed if the star altitude < 0.
 		Return updated StarCatalog (image dependent)
-		'''
-	
-		def pyephem_declaration(self,ObsPyephem):
-			# Define the star in Pyephem to make astrometric calculations
-			pyephem_star = ephem.readdb('"'+self.name+'"'+",f|S|A0,"+self.RA1950+'|0'+\
-				","+Star.DEC1950+'|0'+","+self.Vmag+',1950,0"')
-			pyephem_star.compute(ObsPyephem)	
-			return pyephem_star
-	
-		def set_actual_filter(self,ImageInfo):
-			# Test which filter is in use
-			used_filter = ImageInfo.Properties.used_filter
-			if used_filter=="JohnsonU":
-				self.FilterMag = self.Umag
-				self.Color     = self.U_V
-			elif used_filter=="JohnsonB":
-				self.FilterMag = self.Umag
-				self.Color     = self.U_V
-			elif used_filter=="JohnsonV":
-				self.FilterMag = self.Vmag
-				self.Color     = 0.0
-			elif used_filter=="JohnsonR":
-				self.FilterMag = self.Rmag
-				self.Color     = self.R_V
-			elif used_filter=="JohnsonI":
-				self.FilterMag = self.Imag
-				self.Color     = self.I_V
-			else:
-				pass
-		
+		'''		
 		try:
 			pyephem_star = PyephemDeclaration(StarCatalog[line])
 			if float(pyephem_star.alt) > 0.0:
 				# Real coordinates (from catalog)
 				self.altit_real = float(pyephem_star.alt)
-				self.zdist_real = 90.0-StarCatalog[line].altit_real
+				self.zdist_real = 90.0-self.altit_real
 				self.azimuth    = float(pyephem_star.az)
 				# Apparent coordinates in sky. Atmospheric refraction effect.
-				self.altit_appa = atmospheric_refraction(StarCatalog[line].altit_real,'dir')
-				self.zdist_appa = 90.0-StarCatalog[line].altit_apar
-				self.airmass    = calculate_airmass(StarCatalog[line].altit_appa)
+				self.altit_appa = atmospheric_refraction(self.altit_real,'dir')
+				self.zdist_appa = 90.0-self.altit_apar
+				self.airmass    = calculate_airmass(self.altit_appa)
 				# Photometric properties
-				set_actual_filter(ImageInfo)
+				self.set_actual_filter(ImageInfo)
 				# Image coordinates
-				XYCoordinates = horiz2xy(StarCatalog[line].azimuth,\
-					StarCatalog[line].altit_appa,ImageInfo)
+				XYCoordinates = horiz2xy(self.azimuth,self.altit_appa,ImageInfo)
 				self.Xcoord = XYCoordinates[0]
 				self.Ycoord = XYCoordinates[1]
 			
-			if self.Xcoord<0. or self.Ycoord<0.or self.Xcoord>ImageInfo.Properties.resolution[0] \
-			or self.Ycoord>ImageInfo.Properties.resolution[1] or self.altit_real < 0.0:
+			if self.Xcoord<0. or self.Ycoord<0.or self.Xcoord>ImageInfo.resolution[0] \
+			or self.Ycoord>ImageInfo.resolution[1] or self.altit_real < 0.0:
 				# Star doesn't fit in the image
 				self.destroy = True
 		except:

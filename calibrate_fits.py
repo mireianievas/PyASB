@@ -15,12 +15,9 @@ ____________________________
 try:
 	import pyfits
 	import numpy as np
-	import HeaderTest, CommonErrors
 except:
 	print 'One or more modules missing: pyfits,CommonErrors,HeaderTest'
 	raise SystemExit
-
-import HeaderTest,CommonErrors
 
 __author__ = "Miguel Nievas"
 __copyright__ = "Copyright 2012, PyAstMonUCM project"
