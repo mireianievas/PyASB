@@ -31,7 +31,6 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 class CatalogStar():
 	''' Extract information for each Star in the Catalog '''
-	
 	def __init__(self,CatalogLine,ObsPyephem,ImageInfo):
 		self.basic_properties(CatalogLine)
 		self.imagedep_properties(ObsPyephem,ImageInfo)
