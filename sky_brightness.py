@@ -113,7 +113,7 @@ class SkyBrightness():
 			self.AZselected  = AZlist
 			self.ALTselected = ALTlist
 			self.SBselected  = [sky_brightness_region(self,AZlist[k],ALTlist[k],RADlist[k]) \
-				for k in range(len(AZlist))]
+				for k in xrange(len(AZlist))]
 		except:
 			print('Failed')
 			raise
@@ -218,9 +218,9 @@ class SkyBrightnessGraph():
 				cmap=cm.YlGnBu,levels=self.level_list)
 		
 			# Radial/azimuthal ticks and locators
-			radial_locator = [ (num+1)*pi/18 for num in range(7) ]
+			radial_locator = [ (num+1)*pi/18 for num in xrange(7) ]
 			radial_label = ["$80$","$70$","$60$","$50$","$40$","$30$","$20$","$10$","$0$"]
-			theta_locator = [ 45*num for num in range(8)]
+			theta_locator = [ 45*num for num in xrange(8)]
 			theta_label = ["$N$","$NE$","$E$","$SE$","$S$","$SW$","$W$","$NW$"]
 			SBgraph.set_rgrids(radial_locator,radial_label,size="large")
 			SBgraph.set_thetagrids(theta_locator,theta_label,size="large")

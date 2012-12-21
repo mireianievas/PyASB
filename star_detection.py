@@ -22,6 +22,7 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 
 try:
+	import numpy as np
 	import matplotlib.pyplot as mpl
 	import matplotlib.colors as mpc
 	import matplotlib.patches as mpp
@@ -30,24 +31,51 @@ except:
 	print 'One or more modules missing: pyfits,HeaderTest'
 	raise SystemExit
 
-
-class Star():
-	def __init__():
-	
-	def _photometry_bouguervar(self):
+class MeasuredStar(MeasuredCatalog):
+	''' Derivated variables used in Bouguer fit'''
+	def photometry_bouguervar(self):
 		# Calculate parameters used in bouguer law fit
 		self.25logF      = 2.5*log10(self.flux_star)
 		self.25logF_unc  = (2.5/log(10))*,self.flux_star_unc/self.flux_star
 		self.m25logF     = self.FilterMag+Star.25logF
 		self.m25logF_unc = self.25logF_unc
+	
+	''' Background and Star Fluxes '''
+	def measure_background(self,fits_region):
+		self.skyflux     = np.median(fits_region)
+		self.skyflux_err = np.std(fits_region)
 		
-	def _star_detection(self,ImageInfo):
+	def measure_totalflux(self,fits_region):
+		self.totalflux    = np.sum(fits_region)
+		
+	def measure_starflux(self,pixels_star,pixels_background):
+		measure_background(self,pixels_background)
+		measure_totalflux(self,pixels_star)
+		self.starflux = self.totalflux - len(pixel_star)*self.skyflux
+		self.starflux_err = len(pixel_star)*self.skyflux_err
+	
+	''' Centroid determination '''
+	def centroid_estimation(self,fits_region):
+		exponent = 2 # Valures > 1 intensify the convergence of the method.
+		detection_threshold = 1.5
+		try:
+			xweight = np.array([range(len(fits_region[0]))]*len(fits_region))
+			yweight = np.array([range(len(fits_region))]*len(fits_region[0])).transpose()
+			self.xcentroid = np.sum(xweight*fits_region**exponent)/np.sum(fits_region**exponent)
+			self.ycentroid = np.sum(yweight*fits_region**exponent)/np.sum(fits_region**exponent)
+			assert np.std(fits_region)>detection_threshold*np.mean(np.abs(fits_region))
+		except:
+			raise
+
+	'''Apperture photometry'''		
+		
+	def star_detection(self,ImageInfo):
 		# Define aperture disk for photometry
 		R1,R2,R3 = aperture_photometry_radius(Star,ImageInfo)
 		pixels1,pixels2,pixels3 = apphot_pixels(Star.Xcoord,Star.Ycoord,R1,R2,R3,ImageInfo)
 		
 		# Coarse flux measure
-		Star.flux_star,Star.flux_sky = aproximate_fluxes(self.fits_data,pixels1,pixels3,self.ImageInfo)
+		aproximate_fluxes(self.fits_data,pixels1,pixels3,self.ImageInfo)
 		# NOTE: flux_sky is absolute, not normalized.
 		
 		# Filter the fits matrix for future background SB measures
@@ -109,7 +137,7 @@ class MeasuredCatalog():
 			skyfigure,skyimage = create_skymap(self.fits_data,self.StarCatalog,self.ImageInfo,self.ObsPyephem)
 	
 		StarsMeasured = []
-		for star_index in range(self.StarCatalog):
+		for star_index in xrange(len(self.StarCatalog)):
 			Star = self.StarCatalog[star_index]
 			try:
 				Star = _star_detection(Star)

@@ -27,51 +27,115 @@ __maintainer__ = "Miguel Nievas"
 __email__ = "miguelnr89[at]gmail[dot]com"
 __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
-class FitsImage():
+
+
+
+class FitsImage(ImageTest):
 	def __init__(self,input_file):
+		self.load_science(input_file)
 		
-		self.load_image(input_file)
-		
-		
-	def load_image(self,input_file):
-		# Image loading function
+	def load_science(self,input_file):
+		print('Loading ScienceFrame ...'),
 		try: 
-			self.file_opened = pyfits.open(fichero_imagen)
-			self.file_data   = file_opened[0].data
-			self.fits_header = file_opened[0].header
-		except IOError:	
-			print 'IOError. Error opening file '+fichero_imagen+'.'
-			return 1
-		except:
-			print 'Unknown error:'
-			raise
-			return 2
+			file_opened = pyfits.open(input_file)
+			self.fits_Data   = file_opened[0].data
+			self.fits_Header = file_opened[0].header
+			self.fits_Texp   = float(ImageTest.correct_exposure(self.fits_Header))
+		except:	raise
+		else: print('OK. File '+str(input_file)+' opened correctly.')
+		
+	def load_dark(self,MasterDark):
+		print('Loading MasterDark ...'),
+		try:
+			MasterDark_HDU    = pyfits.open(MasterDark)
+			self.MasterDark_Data   = MasterDark_HDU[0].data
+			self.MasterDark_Header = MasterDark_HDU[0].header
+			self.MasterDark_Texp   = float(ImageTest.correct_exposure(MasterDark_Header))
+		except: raise
+		else: print('OK')
+	
+	def load_flat(self,MasterFlat):
+		print('Loading MasterFlat ...'),
+		try:
+			MasterFlat_HDU    = pyfits.open(MasterDark)
+			self.MasterFlat_Data   = MasterDark_HDU[0].data
+			self.MasterFlat_Header = MasterDark_HDU[0].header
+			self.MasterFlat_Texp   = float(ImageTest.correct_exposure(MasterFlat_Header))
+		except: raise
+		else: print('OK')
+		
+	def load_bias(self,MasterBias):
+		print('Loading MasterBias ...'),
+		try:
+			MasterBias_HDU    = pyfits.open(MasterDark)
+			self.MasterBias_Data   = MasterDark_HDU[0].data
+			self.MasterBias_Header = MasterBias_HDU[0].header
+			self.MasterBias_Texp   = float(ImageTest.correct_exposure(MasterBias_Header))
+		except: raise
+		else: print('OK')
+			
+	def reduce_science_frame(self,MasterDark,MasterFlat,MasterBias=None):
+		'''
+		Load MasterDark and MasterFlat. MasterBias is neccesary only if working 
+		with different exposures between Dark and Science frames
+		'''
+		self.load_dark(MasterDark)
+		self.load_flat(MasterFlat)
+		
+		if self.MasterDark_Texp == self.fits_Texp or MasterBias==None:
+			if MasterBias==None:
+				print('WARNING: Science and Dark dont have the same exposure ! ')
+			self.SyntDark_Data   = self.MasterDark_Data
+			self.SyntDark_Texp   = self.MasterDark_Texp
+			self.SyntDark_Header = self.MasterDark_Header
 		else:
-			print 'File '+str(input_file)+' opened correctly.'
-			return fits_data,fits_header
-				
+			self.load_bias(MasterBias)		
+			print('Creating synthetic Dark ...'),
+			try:
+				self.SyntDark_Data = (self.MasterDark_Data-self.MasterBias_Data)/ \
+					(self.MasterDark_Texp-self.MasterBias_Data) *\
+					(self.ScienceFrame_Texp-self.MasterBias_Texp)+\
+					self.MasterBias_Data
+				self.SyntDark_Texp   = self.fits_Texp
+				self.SyntDark_Header = self.MasterDark_Header
+				self.SyntDark_Header['EXPOSURE'] = self.SyntDark_Texp
+			except: raise
+			else: print('OK')
+		
+		print('Calibrating image with MasterFlat and MasterDark ...')
+		try: self.fits_Data = (self.fits_Data-self.SyntDark_Data)/self.MasterFlat_Data
+		except: raise
+		else: print('OK')
+		
 	def __del__(self):
 		del(self)
-	
-class ImageInfo():
+
+class ImageInfo(ImageTest):
 	'''
 	Extract some data from the image header
 	and put it in a class ImageInfo
 	'''
 	def __init__(self,fits_header):
 		# Date and time in different formats
-		self.fits_date	 = self.correct_date(fits_header)
+		self.fits_date	 = ImageTest.correct_date(fits_header)
 		self.date_array	 = [self.fits_date[0:4],self.fits_date[4:6],self.fits_date[6:8],
 			self.fits_date[9:11],self.fits_date[11:13],self.fits_date[13:15]]
 		self.date_string = date_array[0]+"/"+date_array[1]+"/"+date_array[2]+" "+\
 			self.date_array[3]+":"+self.date_array[4]+":"+self.date_array[5]
 
 		# Exposure (float), resolution (2d int array), filter (str)
-		self.exposure	 = self.correct_exposure(fits_header)
-		self.resolution	 = self.correct_resolution(fits_header)
-		self.used_filter = self.correct_filter(fits_header)
+		self.exposure	 = ImageTest.correct_exposure(fits_header)
+		self.resolution	 = ImageTest.correct_resolution(fits_header)
+		self.used_filter = ImageTest.correct_filter(fits_header)
+
+	def __del__(self):
+		del(self)
+		
+class ImageTest():
+	'''Perform some test on the image header and extract information'''
 	
-	def correct_exposure(self,file_header):
+	@staticmethod
+	def correct_exposure(file_header):
 		# Exposure
 		try: texp = float(file_header['EXPOSURE'])
 		except: raise
@@ -79,7 +143,8 @@ class ImageInfo():
 			assert texp>0., '0s exposure time detected.'
 			return texp
 	
-	def correct_date(self,file_header):
+	@staticmethod
+	def correct_date(file_header):
 		# Date and time
 		try: date = file_header['DATE']
 		except:	raise
@@ -87,7 +152,8 @@ class ImageInfo():
 			assert len(date)==6, 'Date format not YYYYMMDD'
 			return date	
 	
-	def correct_resolution(self,file_header):
+	@staticmethod
+	def correct_resolution(file_header):
 		# Resolution
 		try: resolution = [int(file_header['NAXIS1']),int(file_header['NAXIS2'])]
 		except: raise
@@ -95,7 +161,8 @@ class ImageInfo():
 			assert resolution[0]>0 and resolution[1]>0, 'Matrix not 2 dimensional'
 			return resolution
 	
-	def correct_filter(self,file_header):
+	@staticmethod
+	def correct_filter(file_header):
 		# Test if there's a known filter
 		try: used_filter = file_header['FILTER']
 		except: raise
@@ -106,9 +173,6 @@ class ImageInfo():
 			assert used_filter[0:7] in ['Johnson','Jonhson'], 'Filter type not Johnson'
 			assert used_filter[7:] in ['U','B','V','R','I'], 'Filter not U,B,V,R or I'
 			return 'Johnson_'+used_filter[7:]
-
-	def __del__(self):
-		del(self)
 	
 	
 	
