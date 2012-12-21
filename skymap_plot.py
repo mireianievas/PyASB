@@ -66,7 +66,7 @@ class SkyMap():
 	def _draw_polar_axes(self):
 		''' Draw polar axes on the image '''
 		num_cir=9,num_rad=12
-		div_360 = [ k for k in range(1,360+1,1) if 360%k == 0 ]
+		div_360 = [ k for k in xrange(1,360+1,1) if 360%k == 0 ]
 		phase = 360/([ k for k in div_360 if num_rad-k>=0][-1])
 		# Minimal plotted altitude
 		zenith_xy = zenith_position(self.ImageInfo)
@@ -91,7 +91,7 @@ class SkyMap():
 			except: return "$\hbox{"+str(angle)+"}^\\circ $"
 			else: return "$\hbox{"+cardinal+"}$"
 		
-		for azimuth in range(0,360,phase):
+		for azimuth in xrange(0,360,phase):
 			dx = -max_radius*cos((azimuth-self.ImageInfo.azimuth_zeropoint)*pi/180)
 			dy =  max_radius*sin((azimuth-self.ImageInfo.azimuth_zeropoint)*pi/180)
 			xlabel = zenith_xy[0]+dx/2
@@ -102,7 +102,7 @@ class SkyMap():
 				xytext=(0,3),textcoords='offset points',fontsize='small',label='_nolegend_',\
 				alpha=0.75)
 		
-		altitude_labels = range(90,min_altitude-5,5*int((min_altitude-90)/(5*num_cir)))
+		altitude_labels = xrange(90,min_altitude-5,5*int((min_altitude-90)/(5*num_cir)))
 		if min_altitude not in altitude_labels:
 			altitude_labels.append(min_altitude)
 	

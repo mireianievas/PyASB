@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# NOTE: OBSOLETE !
 
 '''
 Calibrate FITS image with MasterDark and MasterFlat
