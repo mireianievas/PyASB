@@ -7,13 +7,13 @@ Fit fluxes and star data to an extinction law to obtain
 extinction and instrument zeropoint.
 ____________________________
 
-This module is part of the PyAstMonUCM project, 
+This module is part of the PyASB project, 
 created and maintained by Miguel Nievas [UCM].
 ____________________________
 '''
 
 __author__ = "Miguel Nievas"
-__copyright__ = "Copyright 2012, PyAstMonUCM project"
+__copyright__ = "Copyright 2012, PyASB project"
 __credits__ = ["Miguel Nievas"]
 __license__ = "GNU GPL v3"
 __version__ = "1.99.0"

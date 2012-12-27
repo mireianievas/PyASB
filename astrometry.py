@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
 '''
-PyAstMon astrometry functions.
+PyASB astrometry functions.
 
 Convert from one coordinate system to another.
 ____________________________
 
-This module is part of the PyAstMonUCM project, 
+This module is part of the PyASB project, 
 created and maintained by Miguel Nievas [UCM].
 ____________________________
 '''
@@ -20,7 +20,7 @@ except:
 	raise SystemExit
 
 __author__ = "Miguel Nievas"
-__copyright__ = "Copyright 2012, PyAstMonUCM project"
+__copyright__ = "Copyright 2012, PyASB project"
 __credits__ = ["Miguel Nievas"]
 __license__ = "GNU GPL v3"
 __version__ = "1.99.0"
