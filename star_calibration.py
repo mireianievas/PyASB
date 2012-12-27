@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 '''
-Load Catalog file and make PyAstMon StarCatalog
+Load Catalog file and make PyASB StarCatalog
 
 This module loads the catalog file and returns 
 an array of Star objects (StarCatalog).
