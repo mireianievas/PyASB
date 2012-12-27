@@ -14,7 +14,7 @@ ____________________________
 __author__ = "Miguel Nievas"
 __copyright__ = "Copyright 2012, PyAstMonUCM project"
 __credits__ = ["Miguel Nievas"]
-__license__ = "GNU GPL v3.0"
+__license__ = "GNU GPL v3"
 __version__ = "1.99.0"
 __maintainer__ = "Miguel Nievas"
 __email__ = "miguelnr89[at]gmail[dot]com"
