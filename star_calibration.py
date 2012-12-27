@@ -4,7 +4,9 @@
 Load Catalog file and make PyASB StarCatalog
 
 This module loads the catalog file and returns 
-an array of Star objects (StarCatalog).
+an array of Star objects (StarCatalog) with
+their fluxes.
+
 ____________________________
 
 This module is part of the PyASB project, 
@@ -102,7 +104,7 @@ class CatalogStar():
 		'''		
 		try:
 			pyephem_star = PyephemDeclaration(StarCatalog[line])
-			if float(pyephem_star.alt) > 0.0:
+			if float(pyephem_star.alt) > ImageInfo.min_altitude:
 				# Real coordinates (from catalog)
 				self.altit_real = float(pyephem_star.alt)
 				self.zdist_real = 90.0-self.altit_real
@@ -119,7 +121,7 @@ class CatalogStar():
 				self.Ycoord = XYCoordinates[1]
 			
 			if self.Xcoord<0. or self.Ycoord<0.or self.Xcoord>ImageInfo.resolution[0] \
-			or self.Ycoord>ImageInfo.resolution[1] or self.altit_real < 0.0:
+			or self.Ycoord>ImageInfo.resolution[1] or self.altit_real < ImageInfo.min_altitude:
 				# Star doesn't fit in the image
 				self.destroy = True
 			if self.FilterMag > ImageInfo.magnitude_limit:
