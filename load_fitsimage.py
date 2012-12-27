@@ -110,12 +110,15 @@ class FitsImage(ImageTest):
 	def __del__(self):
 		del(self)
 
-class ImageInfo(ImageTest):
+class ImageInfo(ImageTest,ConfigOptions):
 	'''
 	Extract some data from the image header
 	and put it in a class ImageInfo
 	'''
-	def __init__(self,fits_header):
+	def __init__(self,fits_header,config_file):
+		ConfigOptions.__init__(self,config_file)
+		
+	def read_header(self,fits_header):
 		# Date and time in different formats
 		self.fits_date	 = ImageTest.correct_date(fits_header)
 		self.date_array	 = [self.fits_date[0:4],self.fits_date[4:6],self.fits_date[6:8],
@@ -127,6 +130,54 @@ class ImageInfo(ImageTest):
 		self.exposure	 = ImageTest.correct_exposure(fits_header)
 		self.resolution	 = ImageTest.correct_resolution(fits_header)
 		self.used_filter = ImageTest.correct_filter(fits_header)
+	
+	def config_processing(self):
+		filters=["U","B","V","R","I"]
+		
+		# Default values
+		self.zero_points = {"Johnson_"+filtro:[False,False] for filtro in filtros}
+		self.color_terms = {"Johnson_"+filtro:[False,False] for filtro in filtros}
+		self.background_levels = {"Johnson_"+filtro:[False,False] for filtro in filtros}
+		self.flatfield = {"Johnson_"+filtro:False for filtro in filtros}
+		self.darkframe = False
+		self.biasframe = False
+		
+		# Config processing
+		for option in self.FileOptions:
+			if   option[0]=="obs_latitude":        self.latitude=float(option[1])
+			elif option[0]=="obs_longitude":       self.longitude=float(option[1])
+			elif option[0]=="delta_x":             self.despl_x_ptos=float(option[1])
+			elif option[0]=="delta_y":             self.despl_y_ptos=float(option[1])
+			elif option[0]=="radial_factor":       self.radial_factor=float(option[1])
+			elif option[0]=="azimuth_zeropoint":   self.azimuth_zeropoint=float(option[1])
+			elif option[0]=="min_altitude":        self.min_altitude=float(option[1])
+			elif option[0]=="base_radius":         self.base_radius=float(option[1])
+			elif option[0]=="baseflux_detectable": self.baseflux_detectable=float(option[1])
+			elif option[0]=="lim_Kendall_tau":     self.lim_Kendall_tau=float(option[1])
+			elif option[0]=="ccd_bits":            self.ccd_bits=float(option[1])
+			elif option[0]=="ccd_gain":            self.ccd_gain=float(option[1])
+			elif option[0]=="read_noise":          self.read_noise=float(option[1])
+			elif option[0]=="thermal_noise":       self.thermal_noise=float(option[1])
+			elif option[0]=="max_magnitude":       self.max_magnitude = float(option[1])
+			elif option[0]=="max_star_number":     self.max_star_number = int(option[1])
+			elif option[0]=="pixel_scale":         self.pixel_scale = float(op· cion[1])
+			elif option[0]=="backgroundmap_title": self.backgroundmap_title = str(option[1])
+			elif option[0]=="darkframe":           self.darkframe=option[1]
+			else:
+				# Options that depends on the filter
+				for the_filter in filters:
+					filter_name = "Johnson_"+filters[the_filter]
+					if   option[0]=="zero_point_"+filters[the_filter]:
+						self.zero_points[filter_name] = \
+							[float(option[1].split(",")[0]), float(option[1].split(",")[1])]
+					elif option[0]=="termino_color_"+filters[the_filter]:
+						self.color_terms[filter_name] = \
+							[float(option[1].split(",")[0]), float(option[1].split(",")[1])]
+					elif option[0]=="nivel_fondo_"+filters[the_filter]:
+						self.background_levels[filter_name] = \ 
+							[float(option[1].split(",")[0]), float(option[1].split(",")[1])]
+					elif option[0]=="flatfield_"+filters[the_filter]:
+						self.flatfield[filter_name] = option[1]	
 
 	def __del__(self):
 		del(self)

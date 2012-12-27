@@ -42,8 +42,8 @@ def bouguer_fit(StarMeasured, ImageInfo, ObsPyephem):
 	
 	try:
 		class fixed_zp:
-			fixed_y     = ImageInfo.Config.y
-			fixed_y_unc = ImageInfo.Config.y_unc
+			fixed_y     = ImageInfo.zeropoint
+			fixed_y_unc = ImageInfo.zeropoint_unc
 		Regression = theil_sen(Regression,fixed_zp)
 		return Regression
 	except:
@@ -56,7 +56,7 @@ def bouguer_fit(StarMeasured, ImageInfo, ObsPyephem):
 def bouguer_plot(Regression,ImageInfo,ObsPyephem):
 	''' Plot photometric data from the bouguer fit '''
 
-	xfit = linspace(1,calculate_airmass(ImageInfo.Config.min_altitude),10)
+	xfit = linspace(1,calculate_airmass(ImageInfo.min_altitude),10)
 	yfit = polyval([Regression.slope,Regression.zp],xfit)
 
 	xdata    = Regression.xdata
@@ -80,7 +80,7 @@ def bouguer_plot(Regression,ImageInfo,ObsPyephem):
 	except:
 		raise
 	
-	if ImageInfo.Config.bouguerplot_file!=False:
+	if ImageInfo.bouguerplot_file!=False:
 		# Show or save the bouguer plot
 		show_or_save_bouguerplot(bouguerfigure,ImageInfo,ObsPyephem)
 
