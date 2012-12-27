@@ -33,16 +33,16 @@ except:
 
 class SkyMap():
 	'''	SkyMap class '''
-	def __init__(fits_data,MeasuredCatalog,ImageInfo,ObsPyephem):
+	def __init__(self,fits_data,MeasuredCatalog,ImageInfo,ObsPyephem):
 		self.fits_data = fits_data
 		self.MeasuredCatalog = MeasuredCatalog
 		self.ImageInfo = ImageInfo
 		self.ObsPyephem = ObsPyephem
 		
-		self._create_skymap()
-		self._draw_polar_axes()
+		self.create_skymap()
+		self.draw_polar_axes()
 	
-	def _create_skymap(self):
+	def create_skymap(self):
 		# Create figure and self.skyimage subplot. 
 		# Set axis, labels, info text and draw stars in catalog.
 		self.skyfigure = mpl.figure(figsize=(10,10),dpi=100)
@@ -63,7 +63,7 @@ class SkyMap():
 		self.skyimage = draw_polar_axes(self.skyimage,self.ImageInfo)
 		self.skyimage.legend(('In catalog','Detected'),'upper right')
 
-	def _draw_polar_axes(self):
+	def draw_polar_axes(self):
 		''' Draw polar axes on the image '''
 		num_cir=9,num_rad=12
 		div_360 = [ k for k in xrange(1,360+1,1) if 360%k == 0 ]
