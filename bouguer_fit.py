@@ -87,7 +87,7 @@ def bouguer_plot(Regression,ImageInfo,ObsPyephem):
 		# Show or save the bouguer plot
 		show_or_save_bouguerplot(bouguerfigure,ImageInfo,ObsPyephem)
 
-class TheilSenRegression
+class TheilSenRegression:
 	def __init__(self,Xpoints,Ypoints,y0=None, y0err=None, x0=None, x0err=None):
 		assert len(Xpoints)==len(Ypoints)
 		self.Xpoints = Xpoints

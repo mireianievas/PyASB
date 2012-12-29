@@ -142,10 +142,10 @@ def PhotometricStar(CatalogStar):
 	''' Derivated variables to be used in Bouguer fit'''
 	def photometry_bouguervar(self):
 		# Calculate parameters used in bouguer law fit
-		self.25logF      = 2.5*log10(self.flux_star)
-		self.25logF_unc  = (2.5/log(10))*,self.flux_star_unc/self.flux_star
-		self.m25logF     = self.FilterMag+self.25logF
-		self.m25logF_unc = self.25logF_unc
+		self._25logF      = 2.5*log10(self.flux_star)
+		self._25logF_unc  = (2.5/log(10))*self.flux_star_unc/self.flux_star
+		self.m25logF     = self.FilterMag+self._25logF
+		self.m25logF_unc = self._25logF_unc
 	
 	''' Aperture photometry. Define R1, R2 and R3 radius '''
 	def estimate_photometric_radius(self,ImageInfo):
@@ -163,7 +163,7 @@ def PhotometricStar(CatalogStar):
 	def apphot_pixels(self,X,Y):
 		X = int(X+0.5); Y = int(Y+0.5)
 		pixels_region = [[X,Y] for X in xrange(X-self.R3-1,X+self.R3+1)\
-			for Y in xrange(Y-self.R3-1,X+self.R3+1)
+			for Y in xrange(Y-self.R3-1,X+self.R3+1)]
 		# Pixels in each ring
 		def less_distance(Xi,Yi,reference):
 			return (Xi-X)**2 + (Yi-Y)**2 <=reference**2
@@ -198,7 +198,7 @@ def PhotometricStar(CatalogStar):
 	
 	@staticmethod
 	def star_is_saturated(fits_region,max_value):
-		assert np.max(fits_region)<max_value:
+		assert np.max(fits_region)<max_value
 	
 	
 	''' Detectability conditions '''
@@ -237,7 +237,7 @@ def PhotometricStar(CatalogStar):
 		'''
 		radius = min_radius
 		continue_iterate = True
-		while continue_iterate=True and radius<max_radius:
+		while continue_iterate==True and radius<max_radius:
 			radius += 1
 			pixels1,pixels2,pixels3 = self.apphot_pixels(self.Xcoord,self.Ycoord)
 			old_starflux = self.starflux

@@ -28,6 +28,10 @@ __email__ = "miguelnr89[at]gmail[dot]com"
 __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 
+class ImageTest:
+	pass
+class ConfigOptions:
+	pass
 
 
 class FitsImage(ImageTest):
@@ -160,7 +164,7 @@ class ImageInfo(ImageTest,ConfigOptions):
 			elif option[0]=="thermal_noise":       self.thermal_noise=float(option[1])
 			elif option[0]=="max_magnitude":       self.max_magnitude = float(option[1])
 			elif option[0]=="max_star_number":     self.max_star_number = int(option[1])
-			elif option[0]=="pixel_scale":         self.pixel_scale = float(op· cion[1])
+			elif option[0]=="pixel_scale":         self.pixel_scale = float(option[1])
 			elif option[0]=="backgroundmap_title": self.backgroundmap_title = str(option[1])
 			elif option[0]=="darkframe":           self.darkframe=option[1]
 			else:
@@ -174,8 +178,8 @@ class ImageInfo(ImageTest,ConfigOptions):
 						self.color_terms[filter_name] = \
 							[float(option[1].split(",")[0]), float(option[1].split(",")[1])]
 					elif option[0]=="nivel_fondo_"+filters[the_filter]:
-						self.background_levels[filter_name] = \ 
-							[float(option[1].split(",")[0]), float(option[1].split(",")[1])]
+						self.background_levels[filter_name] = [float(option[1].split(",")[0]), \
+						float(option[1].split(",")[1])]
 					elif option[0]=="flatfield_"+filters[the_filter]:
 						self.flatfield[filter_name] = option[1]	
 
