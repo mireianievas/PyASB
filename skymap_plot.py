@@ -25,7 +25,6 @@ try:
 	import matplotlib.pyplot as mpl
 	import matplotlib.colors as mpc
 	import matplotlib.patches as mpp
-	from draw_functions import draw_polar_axes
 except:
 	print 'One or more modules missing: pyfits,HeaderTest'
 	raise SystemExit
@@ -65,7 +64,7 @@ class SkyMap():
 
 	def draw_polar_axes(self):
 		''' Draw polar axes on the image '''
-		num_cir=9,num_rad=12
+		num_cir=9; num_rad=12
 		div_360 = [ k for k in xrange(1,360+1,1) if 360%k == 0 ]
 		phase = 360/([ k for k in div_360 if num_rad-k>=0][-1])
 		# Minimal plotted altitude
@@ -82,7 +81,7 @@ class SkyMap():
 		
 		x_minalt,y_minalt = horiz2xy(0,min_altitude,self.ImageInfo)
 		max_radius = sqrt((x_minalt-self.ImageInfo.resolution[0]/2)**2+\
-			y_minalt-self.ImageInfo.resolution[1]/2)**2)
+			(y_minalt-self.ImageInfo.resolution[1]/2)**2)
 	
 		def is_cardinal_point(angle):
 			''' this function draws a cardinal point letter instead of number
