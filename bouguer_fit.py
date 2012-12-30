@@ -16,6 +16,8 @@ __author__ = "Miguel Nievas"
 __copyright__ = "Copyright 2012, PyASB project"
 __credits__ = ["Miguel Nievas"]
 __license__ = "GNU GPL v3"
+__shortname__ = "PyASB"
+__longname__ = "Python All-Sky Brightness measuring pipeline"
 __version__ = "1.99.0"
 __maintainer__ = "Miguel Nievas"
 __email__ = "miguelnr89[at]gmail[dot]com"
@@ -33,62 +35,57 @@ except:
 	print 'One or more modules missing: numpy,matplotlib'
 	raise SystemExit
 
-
-def bouguer_fit(StarMeasured, ImageInfo, ObsPyephem):
-	''' Fit measured fluxes to an extinction model
-		Return regression parameters (ZeroPoint, Extinction) '''
-	
-	class Regression:
-		x    = [Star.airmass for Star in StarMeasured]
-		y    = [Star.m25logF for Star in StarMeasured]
-		yerr = [Star.m25logF_unc for Star in StarMeasured]
-	
-	try:
-		class fixed_zp:
+class BouguerFit():
+	def bouguer_fit(self,ImageInfo):
+		''' 
+		MUST be defined as a PhotometricCatalog child
+		Fit measured fluxes to an extinction model
+		Return regression parameters (ZeroPoint, Extinction)
+		'''
+		
+		self.xdata    = [Star.airmass for Star in self.Stars]
+		self.ydata    = [Star.m25logF for Star in self.Stars]
+		self.yerr = [Star.m25logF_unc for Star in self.Stars]
+			
+		try:
 			fixed_y     = ImageInfo.zeropoint
 			fixed_y_unc = ImageInfo.zeropoint_unc
-		Regression = theil_sen(Regression,fixed_zp)
-		return Regression
-	except:
+			self.Regression = TheilSenRegression(self.xdata,self.ydata,self.fixed_y,self.fixed_y_unc)
+		except:
+			try:
+				self.Regression = TheilSenRegression(self.xdata,self.ydata)
+			except:
+				raise
+	
+	def bouguer_plot(self,ImageInfo,ObsPyephem):
+		''' Plot photometric data from the bouguer fit '''
+	
+		xfit = linspace(1,calculate_airmass(ImageInfo.min_altitude),10)
+		yfit = polyval([self.Regression.mean_slope,self.Regression.mean_zeropoint],xfit)
+	
+		bouguerfigure = figure(figsize=(8,6),dpi=100)
+		bouguerplot = figurabouguer.add_subplot(111)
+		bouguerplot.set_title('Bouguer extinction law fit',size="xx-large")
+		bouguerplot.errorbar(self.xdata, self.ydata, yerr=self.yerr, fmt='*', ecolor='g')
+		bouguerplot.plot(x_fit,y_fit,'r-')
+		
 		try:
-			Regression = theil_sen(Regression)
-			return Regression
+			plot_infotext = \
+				ImageInfo.imagesdate+str(ObsPyephem.lat)+5*" "+str(ObsPyephem.lon)+"\n"+\
+				ImageInfo.used_filter+4*" "+"Rcorr="+str("%.3f"%float(self.Regression.kendall_tau))+"\n"+\
+				"C="+str("%.3f"%float(self.Regression.zeropoint))+"+/-"+str("%.3f"%float(self.Regression.error_zeropoint))+"\n"+\
+				"K="+str("%.3f"%float(self.Regression.mean_slope))+"+/-"+str("%.3f"%float(self.Regression.error_slope))+"\n"+\
+				str("%.0f"%(100.*self.Regression.Nstars_rel))+"% of "+str(self.Regression.Nstars_initial)+" photometric measures shown"
+			bouguerplot.text(0.1,0.1,plot_infotext,fontsize='x-small',transform = plot_infotext.transAxes)
 		except:
 			raise
-
-def bouguer_plot(Regression,ImageInfo,ObsPyephem):
-	''' Plot photometric data from the bouguer fit '''
-
-	xfit = linspace(1,calculate_airmass(ImageInfo.min_altitude),10)
-	yfit = polyval([Regression.slope,Regression.zp],xfit)
-
-	xdata    = Regression.xdata
-	ydata    = Regression.ydata
-	yerrdata = Regression.yerrdata
-
-	bouguerfigure = figure(figsize=(8,6),dpi=100)
-	bouguerplot = figurabouguer.add_subplot(111)
-	bouguerplot.set_title('Bouguer extinction law fit',size="xx-large")
-	bouguerplot.errorbar(xdata, ydata, yerr=yerrdata, fmt='*', ecolor='g')
-	bouguerplot.plot(x_fit,y_fit,'r-')
-	
-	try:
-		plot_infotext = \
-			ImageInfo.imagesdate+str(ObsPyephem.lat)+5*" "+str(ObsPyephem.lon)+"\n"+\
-			ImageInfo.used_filter+4*" "+"Rcorr="+str("%.3f"%float(Regression.Kendall_tau))+"\n"+\
-			"C="+str("%.3f"%float(Regression.zp))+"+/-"+str("%.3f"%float(Regression.zp_err))+"\n"+\
-			"K="+str("%.3f"%float(Regression.slope))+"+/-"+str("%.3f"%float(Regression.slope_err))+"\n"+\
-			str("%.0f"%(100.*Regression.Nrel))+"% of "+str(Norig)+" photometric measures shown"
-		bouguerplot.text(0.1,0.1,plot_infotext,fontsize='x-small',transform = plot_infotext.transAxes)
-	except:
-		raise
-	
-	if ImageInfo.bouguerplot_file!=False:
-		# Show or save the bouguer plot
-		show_or_save_bouguerplot(bouguerfigure,ImageInfo,ObsPyephem)
+		
+		if ImageInfo.bouguerplot_file!=False:
+			# Show or save the bouguer plot
+			show_or_save_bouguerplot(bouguerfigure,ImageInfo,ObsPyephem)
 
 class TheilSenRegression:
-	def __init__(self,Xpoints,Ypoints,y0=None, y0err=None, x0=None, x0err=None):
+	def __init__(self,Xpoints,Ypoints,y0=None,y0err=None,x0=None,x0err=None):
 		assert len(Xpoints)==len(Ypoints)
 		self.Xpoints = Xpoints
 		self.Ypoints = Ypoints
@@ -107,11 +104,12 @@ class TheilSenRegression:
 				self.x0 = 0.0
 				self.x0err = 0.0
 		else: self.fixed_zp = False
-		self.Nstars_initial = len(Ypoints)
+		self.Nstars_initial = len(self.Ypoints)
 		self.Nstars_final = self.Nstars_initial
 		self.pair_blacklist = []
 		# Perform the regression
 		self.perform_regression()
+		self.Nstars_rel = 100.*self.Nstars_final/self.Nstars_initial
 		
 	def perform_regression(self):
 		# Prepare data for regression
@@ -131,6 +129,7 @@ class TheilSenRegression:
 		if self.fixed_zp == True:
 			self.mean_zeropoint = self.y0
 			self.error_zeropoint = self.y0err
+		self.Nstars_final = len(self.Ypoints)
 	
 	def build_matrix_values(self):
 		self.X_matrix_values = np.array([self.Xpoints for line in Xpoints])

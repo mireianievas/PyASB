@@ -22,6 +22,8 @@ __author__ = "Miguel Nievas"
 __copyright__ = "Copyright 2012, PyASB project"
 __credits__ = ["Miguel Nievas"]
 __license__ = "GNU GPL v3"
+__shortname__ = "PyASB"
+__longname__ = "Python All-Sky Brightness measuring pipeline"
 __version__ = "1.99.0"
 __maintainer__ = "Miguel Nievas"
 __email__ = "miguelnr89[at]gmail[dot]com"
@@ -167,6 +169,7 @@ class ImageInfo(ImageTest,ConfigOptions):
 			elif option[0]=="pixel_scale":         self.pixel_scale = float(option[1])
 			elif option[0]=="backgroundmap_title": self.backgroundmap_title = str(option[1])
 			elif option[0]=="darkframe":           self.darkframe=option[1]
+			elif option[0]=="biasframe":           self.biasframe=option[1]
 			else:
 				# Options that depends on the filter
 				for the_filter in filters:
@@ -174,10 +177,10 @@ class ImageInfo(ImageTest,ConfigOptions):
 					if   option[0]=="zero_point_"+filters[the_filter]:
 						self.zero_points[filter_name] = \
 							[float(option[1].split(",")[0]), float(option[1].split(",")[1])]
-					elif option[0]=="termino_color_"+filters[the_filter]:
+					elif option[0]=="color_term_"+filters[the_filter]:
 						self.color_terms[filter_name] = \
 							[float(option[1].split(",")[0]), float(option[1].split(",")[1])]
-					elif option[0]=="nivel_fondo_"+filters[the_filter]:
+					elif option[0]=="bkgnd_minmax_"+filters[the_filter]:
 						self.background_levels[filter_name] = [float(option[1].split(",")[0]), \
 						float(option[1].split(",")[1])]
 					elif option[0]=="flatfield_"+filters[the_filter]:
