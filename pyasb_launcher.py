@@ -24,7 +24,7 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 
 try:
-	from read_config import *
+	#from read_config import *
 	from program_help import *
 	from astrometry import *
 	from star_calibration import *
@@ -34,18 +34,32 @@ try:
 	from skymap_plot import *
 except:
 	print 'One or more modules missing: please check'
-	raise SystemExit
+	raise
 
 
-config_filename = 'pyasb_config.txt'
+config_filename  = '/home/minaya/facultad/pyastmonucm/pyasb_config.cfg'
+catalog_filename = '/home/minaya/facultad/pyastmonucm/ducati_catalog.tsv' 
 
 class InstrumentCalibration():
-	def __init__(Image):
+	def __init__(self,InputFile):
 		#ConfigOptions = ConfigOptions(config_name)
-		FitsImage = FitsImage(InputFile)
-		ImageInfo = ImageInfo(fits_Header,config_filename)
-		PlatformHelp = PlatformHelp()
+		FitsImage_ = FitsImage(InputFile)
+		ImageInfo_ = ImageInfo(FitsImage_.fits_Header,config_filename)
+		FitsImage_.reduce_science_frame(ImageInfo_.darkframe,ImageInfo_.sel_flatfield,MasterBias=None)
 		
+		ObsPyephem_ = pyephem_setup(ImageInfo_)
+		PlatformHelp_ = PlatformHelp()
 		
+		PhotometricCatalog_ = PhotometricCatalog(ObsPyephem_,ImageInfo_,catalog_filename)
+		PhotometricCatalog_.photometric_measures(FitsImage_,ImageInfo_)
+		
+		BouguerFit_ = BouguerFit(ImageInfo_,PhotometricCatalog_)
+		BouguerFit_.bouguer_plot(ImageInfo_,ObsPyephem_)
+		
+		SkyBrightness_ = SkyBrightness(FitsImage_.fits_Data,ImageInfo_,BouguerFit_.Regression_)
+		SkyBrightnessGraph_ = SkyBrightnessGraph(SkyBrightness_,ImageInfo_,ObsPyephem_,BouguerFit_.Regression_)
+		
+if __name__ == '__main__':
+	Imag = InstrumentCalibration('/home/minaya/facultad/beca_mec/coordenadas/Jonhson_B20100914_000305.fit')
 		
 		

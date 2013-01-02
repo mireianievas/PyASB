@@ -34,18 +34,18 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 def horiz2xy(azimuth,altitude,ImageInfo):
 	# Return X,Y position in the image from azimuth/altitude horizontal coord.
 	# azimuth and altitude must be in degrees.
-	Rfactor = ImageInfo.radial_factor*(180.0/pi)*sqrt(2*(1-sin(alt*pi/180.0)))
-	X = ImageInfo.resolution[0]/2 + ImageInfo.center_offset[0] -\
-		Rfactor*cos(az*pi/180.0-ImageInfo.azimuth_zeropoint*pi/180.0)
-	Y = ImageInfo.resolution[1]/2 + ImageInfo.center_offset[0] +\
-		Rfactor*sin(az*pi/180.0-ImageInfo.azimuth_zeropoint*pi/180.0)
+	Rfactor = ImageInfo.radial_factor*(180.0/pi)*sqrt(2*(1-sin(altitude*pi/180.0)))
+	X = ImageInfo.resolution[0]/2 + ImageInfo.delta_x -\
+		Rfactor*cos(azimuth*pi/180.0-ImageInfo.azimuth_zeropoint*pi/180.0)
+	Y = ImageInfo.resolution[1]/2 + ImageInfo.delta_x +\
+		Rfactor*sin(azimuth*pi/180.0-ImageInfo.azimuth_zeropoint*pi/180.0)
 	return X,Y
 
 def xy2horiz(X,Y,ImageInfo):
 	# Return horizontal coordinates from X,Y position in the image.
 	# azimuth and altitude are in degrees.
-	X = X - ImageInfo.resolution[0]/2-ImageInfo.center_offset[0]
-	Y = Y - ImageInfo.resolution[1]/2-ImageInfo.center_offset[1]
+	X = X - ImageInfo.resolution[0]/2-ImageInfo.delta_x
+	Y = Y - ImageInfo.resolution[1]/2-ImageInfo.delta_y
 	Rfactor = sqrt(X**2 + Y**2)/ImageInfo.radial_factor
 	altitude = (180.0/pi)*asin(1-0.5*(pi*Rfactor/180.0)**2)
 	azimuth  = 360+180-(Imagen.azimut_zeropoint + 180.0*atan2(Y,-X)/pi)%360
@@ -57,8 +57,8 @@ def xy2horiz(X,Y,ImageInfo):
 
 def zenith_position(ImageInfo):
 	# Return X,Y position of zenith in the image.
-	X = ImageInfo.resolution[0]/2+ImageInfo.center_offset[0]
-	Y = ImageInfo.resolution[1]/2+ImageInfo.center_offset[1]
+	X = ImageInfo.resolution[0]/2+ImageInfo.delta_x
+	Y = ImageInfo.resolution[1]/2+ImageInfo.delta_y
 	return X,Y
 
 def optical_axis(ImageInfo):
@@ -75,10 +75,10 @@ def atmospheric_refraction(altitude,mode):
 	
 	if mode=='dir':
 		# Return apparent altitude from the real one. 
-		return altitude + (1.02/60)*cot(altitude + 10.3/(altura+5.11))
+		return altitude + (1.02/60)*cot(altitude + 10.3/(altitude+5.11))
 	elif mode=='inv':
 		# Return real altitude from the apparent one
-		return altitude - (1.00/60)*cot(altitude + 7.31/(altura+4.4))
+		return altitude - (1.00/60)*cot(altitude + 7.31/(altitude+4.4))
 	else:
 		print 'Unknow mode '+mode+'. Cannot correct from atmospheric refraction.'
 		return altitude

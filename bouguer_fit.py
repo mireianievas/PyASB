@@ -36,16 +36,18 @@ except:
 	raise SystemExit
 
 class BouguerFit():
-	def bouguer_fit(self,ImageInfo):
+	def __init__(self,ImageInfo,PhotometricCatalog):
+		self.bouguer_fit(ImageInfo,PhotometricCatalog)
+	
+	def bouguer_fit(self,ImageInfo,PhotometricCatalog):
 		''' 
-		MUST be defined as a PhotometricCatalog child
 		Fit measured fluxes to an extinction model
 		Return regression parameters (ZeroPoint, Extinction)
 		'''
 		
-		self.xdata    = [Star.airmass for Star in self.Stars]
-		self.ydata    = [Star.m25logF for Star in self.Stars]
-		self.yerr = [Star.m25logF_unc for Star in self.Stars]
+		self.xdata    = [Star.airmass for Star in PhotometricCatalog.Stars]
+		self.ydata    = [Star.m25logF for Star in PhotometriCatalog.Stars]
+		self.yerr = [Star.m25logF_unc for Star in PhotometricCatalog.Stars]
 			
 		try:
 			fixed_y     = ImageInfo.zeropoint
@@ -84,7 +86,7 @@ class BouguerFit():
 			# Show or save the bouguer plot
 			show_or_save_bouguerplot(bouguerfigure,ImageInfo,ObsPyephem)
 
-class TheilSenRegression:
+class TheilSenRegression():
 	def __init__(self,Xpoints,Ypoints,y0=None,y0err=None,x0=None,x0err=None):
 		assert len(Xpoints)==len(Ypoints)
 		self.Xpoints = Xpoints
