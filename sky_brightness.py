@@ -45,10 +45,10 @@ class SkyBrightness():
 		print('SkyBrightness(): Loading calibration data ...'),
 		try:
 			self.fits_data = fits_data
-			self.exposure    = ImageInfo.Properties.exposure
-			self.pixel_scale = ImageInfo.Config.pixel_scale
-			self.zp        = Regression.zp
-			self.zp_err    = Regression.zp_err
+			self.exposure    = ImageInfo.exposure
+			self.pixel_scale = ImageInfo.pixel_scale
+			self.zp        = Regression.mean_zeropoint
+			self.zp_err    = Regression.error_zeropoint
 		except:
 			print('Failed')
 			raise
@@ -139,16 +139,16 @@ class SkyBrightnessGraph():
 			self.SBzenith     = SkyBrightness.SBgrid[0]
 			self.SBzenith_err = SkyBrightness.SBgrid[1]
 			# Graph parameters
-			self.Title     = ImageInfo.Config.SBTitle     # Graph title (str)
-			self.ImageFilter   = ImageInfo.Properties.used_filter
+			self.Title     = ImageInfo.SBTitle     # Graph title (str)
+			self.ImageFilter   = ImageInfo.used_filter
 			try: 
-				self.ContourLimits = ImageInfo.Config.ContourLimits[self.ImageFilter]
+				self.ContourLimits = ImageInfo.ContourLimits[self.ImageFilter]
 			except:
 				self.ContourLimits = [np.min(self.SBgrid),np.max(self.SBgrid)]
 			# Other data	
 			try:	
-				extinction     = Regression.slope
-				extinction_err = Regression.slope_err
+				extinction     = Regression.mean_slope
+				extinction_err = Regression.error_slope
 				self.extinction_str = "K="+str("%.3f" % float(extinction))+"+-"+\
 					str("%.3f" % float(extinction_err))+"\n"
 			except:

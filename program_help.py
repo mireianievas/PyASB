@@ -47,9 +47,9 @@ class PlatformHelp():
 			'-h: print this help message\n\n'+\
 			'-i input_allsky_image: \n'+\
 			'  All Sky image you want to be analyzed\n\n'+\
-			#'-f [year,month,day]:\n'+\
-			#'  Date to be analyzed (AstMon-UCM only)\n'+\
-			#'  month and day are optional\n\n'+\
+			'-f [year,month,day]:\n'+\
+			'  Date to be analyzed (AstMon-UCM only)\n'+\
+			'  month and day are optional\n\n'+\
 			'-om output_map_image:\n'+\
 			'  Output star map image, full or relative path\n'+\
 			'  if no output file, show the map on screen\n\n'+\

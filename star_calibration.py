@@ -16,7 +16,8 @@ ____________________________
 
 try:
 	import ephem
-	from astrometry import atmospheric_refraction,calculate_airmass
+	import math
+	from astrometry import *
 except:
 	print 'One or more modules missing: pyfits,CommonErrors,HeaderTest'
 	raise SystemExit
@@ -33,19 +34,22 @@ __email__ = "miguelnr89[at]gmail[dot]com"
 __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 
+
 ''' Basic Star Properties, from Photometric and Astrometric Catalog''' 
 class CatalogStar():
 	''' Extract information for each Star in the Catalog '''
 	def __init__(self,CatalogLine,ObsPyephem,ImageInfo):
 		self.basic_properties(CatalogLine)
+		self.pyephem_declaration(ObsPyephem)
+		self.set_actual_filter(ImageInfo)
 		self.imagedep_properties(ObsPyephem,ImageInfo)
 		self.destroy = False
 	
 	def coord_pyephem_format(self,coord_str):
 		# Return coordinate in pyepheem str
-		coord_separated = coord_str.split()
+		coord_separated = coord_str.split(' ')
 		coord_pyephem = str(int(coord_separated[0]))+\
-			':'+str(int(coord_separated[1]))+str(int(coord_separated[2]))
+			':'+str(int(coord_separated[1]))+str(float(coord_separated[2]))
 		return coord_pyephem
 			
 	def basic_properties(self,CatalogLine):
@@ -73,27 +77,27 @@ class CatalogStar():
 		
 	def pyephem_declaration(self,ObsPyephem):
 		''' Define the star in Pyephem to make astrometric calculations '''
-		pyephem_star = ephem.readdb('"'+self.name+'"'+",f|S|A0,"+self.RA1950+'|0'+\
-			","+Star.DEC1950+'|0'+","+self.Vmag+',1950,0"')
+		pyephem_star = ephem.readdb('"'+str(self.name)+'"'+",f|S|A0,"+str(self.RA1950)+'|0'+\
+			","+str(self.DEC1950)+'|0'+","+str(self.Vmag)+',1950,0"')
 		pyephem_star.compute(ObsPyephem)	
 		return pyephem_star
 	
 	def set_actual_filter(self,ImageInfo):
 		''' Test which filter is in use '''
 		used_filter = ImageInfo.used_filter
-		if used_filter=="JohnsonU":
+		if used_filter=="Johnson_U":
 			self.FilterMag = self.Umag
 			self.Color     = self.U_V
-		elif used_filter=="JohnsonB":
+		elif used_filter=="Johnson_B":
 			self.FilterMag = self.Umag
 			self.Color     = self.U_V
-		elif used_filter=="JohnsonV":
+		elif used_filter=="Johnson_V":
 			self.FilterMag = self.Vmag
 			self.Color     = 0.0
-		elif used_filter=="JohnsonR":
+		elif used_filter=="Johnson_R":
 			self.FilterMag = self.Rmag
 			self.Color     = self.R_V
-		elif used_filter=="JohnsonI":
+		elif used_filter=="Johnson_I":
 			self.FilterMag = self.Imag
 			self.Color     = self.I_V
 		else: pass
@@ -103,44 +107,54 @@ class CatalogStar():
 		Calculate star position and dynamic properties.
 		Don't proceed if the star altitude < 0.
 		Return updated StarCatalog (image dependent)
-		'''		
+		'''
+		self.destroy = False
 		try:
-			pyephem_star = PyephemDeclaration(StarCatalog[line])
-			if float(pyephem_star.alt) > ImageInfo.min_altitude:
+			pyephem_star = self.pyephem_declaration(ObsPyephem)
+			if float(pyephem_star.alt)*180.0/math.pi > float(ImageInfo.min_altitude):
+				print '1'
 				# Real coordinates (from catalog)
-				self.altit_real = float(pyephem_star.alt)
+				self.altit_real = float(pyephem_star.alt)*180.0/math.pi
 				self.zdist_real = 90.0-self.altit_real
-				self.azimuth    = float(pyephem_star.az)
+				self.azimuth    = float(pyephem_star.az)*180.0/math.pi
+				print '2'
 				# Apparent coordinates in sky. Atmospheric refraction effect.
 				self.altit_appa = atmospheric_refraction(self.altit_real,'dir')
-				self.zdist_appa = 90.0-self.altit_apar
+				self.zdist_appa = 90.0-self.altit_appa
 				self.airmass    = calculate_airmass(self.altit_appa)
+				print '3'
 				# Photometric properties
 				self.set_actual_filter(ImageInfo)
+				print '4'
 				# Image coordinates
 				XYCoordinates = horiz2xy(self.azimuth,self.altit_appa,ImageInfo)
 				self.Xcoord = XYCoordinates[0]
 				self.Ycoord = XYCoordinates[1]
-			
-			if self.Xcoord<0. or self.Ycoord<0.or self.Xcoord>ImageInfo.resolution[0] \
-			or self.Ycoord>ImageInfo.resolution[1] or self.altit_real < ImageInfo.min_altitude:
-				# Star doesn't fit in the image
+				print '5'
+				if self.Xcoord<0. or self.Ycoord<0.or self.Xcoord>ImageInfo.resolution[0] \
+				or self.Ycoord>ImageInfo.resolution[1] or self.altit_real < ImageInfo.min_altitude:
+					# Star doesn't fit in the image
+					self.destroy = True
+			else:
 				self.destroy = True
-			if self.FilterMag > ImageInfo.magnitude_limit:
+			
+			if self.FilterMag > ImageInfo.max_magnitude:
 				self.destroy = True
 		except:
+			raise
 			self.destroy = True
-			
+			print 'destroyed'
+		else:
+			if self.destroy == False:
+				print 'ok'
+		
 	def __del__(self):
-		print('Deleting star ...'),
+		#print('Deleting star ...'),
 		del(self)
-		print('OK')
+		#print('OK')
 
 ''' Extended Star Properties, from image analysis''' 
-def PhotometricStar(CatalogStar):
-	def __init__(self,CatalogLine,ObsPyephem,ImageInfo):
-		CatalogStar.__init__(self,CatalogLine,ObsPyephem,ImageInfo)
-	
+class PhotometricStar(CatalogStar):
 	''' Derivated variables to be used in Bouguer fit'''
 	def photometry_bouguervar(self):
 		# Calculate parameters used in bouguer law fit
@@ -253,7 +267,7 @@ def PhotometricStar(CatalogStar):
 	'''Aperture photometry. The main function'''	
 	def stellar_aperture_photometry(self,FitsImage,ImageInfo):
 		# Define aperture disk for photometry
-		R1,R2,R3 = self.aperture_photometry_radius(ImageInfo)
+		R1,R2,R3 = self.estimate_photometric_radius(ImageInfo)
 		pixels1,pixels2,pixels3 = self.apphot_pixels(self.Xcoord,self.Ycoord)
 		region_background = self.pixel_list_values(pixels3,FitsImage.fits_data)
 		region_star = self.pixel_list_values(pixels1,FitsImage.fits_data)
@@ -268,13 +282,18 @@ def PhotometricStar(CatalogStar):
 		optimal_aperture_photometry(pixels1,R1/2,R2)
 		photometry_bouguervar()
 
+
 class CatalogFile():
 	''' Catalog with Star photometry in U,B,V,R,I bands '''
 	def __init__(self,catalog_filename):
 		# Open catalog file and return its content
 		try:
-			self.file = open(catalog_filename, 'r')
-			self.CatalogLines = [ line[:-1] for line in self.file.readlines() ]
+			self.catalogfile = open(catalog_filename, 'r')
+			CatalogContent = self.catalogfile.readlines()
+			MinLine = 31; separator = "\t"
+			self.CatalogLines = [ CatalogContent[line][:-1].split(separator) \
+				for line in xrange(len(CatalogContent)) \
+				if line>=MinLine-1 and CatalogContent[line].replace(" ","")!=""]
 		except IOError:
 			print('IOError. Error opening file '+catalog_filename+'.')
 			#return 1
@@ -287,27 +306,35 @@ class CatalogFile():
 	
 	def __del__(self):
 		print('Closing file ...'),
-		self.file.close()
+		self.catalogfile.close()
 		print('OK')
 
 class PhotometricCatalog():
 	''' This class processes the entire catalog '''
 	def __init__(self,ObsPyephem,ImageInfo,catalog_filename='ducati_catalog.tsv'):
+		# Load the catalog
 		RawCatalog = CatalogFile(catalog_filename)
+		
 		# Calculate some properties for each star
-		ProcessedCatalog = [PhotometricStar(Star,ObsPyephem,ImageInfo) \
-			for Star in RawCatalog.CatalogLines]
+		self.ProcessedCatalog = []
+		for Star in RawCatalog.CatalogLines:
+			PhotometricStar_ = PhotometricStar(Star,ObsPyephem,ImageInfo)
+			self.ProcessedCatalog.append(PhotometricStar_)
+		
 		# Filter the catalog
-		self.Stars = [Star for Star in ProcessedCatalog if Star.destroy==False]
+		self.Stars = [Star for Star in self.ProcessedCatalog if Star.destroy==False]
 		RawCatalog.__del__()
 	
 	''' Detect and measure star fluxes in the image. Destroy bad stars'''
 	def photometric_measures(self,FitsImage,ImageInfo):
-		try: 
-			Star.stellar_aperture_photometry(self,FitsImage,ImageInfo)
+		try:
+			for Star in self.ProcessedCatalog:
+				Star.stellar_aperture_photometry(FitsImage,ImageInfo)
 		except:
+			raise
+			print 'phot error!'
 			Star.destroy=True
-		self.Stars = [Star for Star in ProcessedCatalog if Star.destroy==False]
+		self.Stars = [Star for Star in self.ProcessedCatalog if Star.destroy==False]
 	
 	def plot_starmap(self,ImageInfo,ObsPyephem):
 		TheSkyMap = SkyMap(fits_data,MeasuredCatalog,ImageInfo,ObsPyephem)

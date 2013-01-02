@@ -13,6 +13,7 @@ ____________________________
 
 try:
 	import ephem
+	import math
 except:
 	print 'One or more modules missing: pyephem'
 	raise SystemExit
@@ -31,17 +32,17 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 class ConfigOptions():
 	def __init__(self,config_file):
-		self.FileOptions = {}
+		self.FileOptions = []
 		self.read_config_file(config_file)
 	
 	''' Add and remove options '''
-	def add_option(param,value):
+	def add_option(self,param,value):
 		self.FileOptions.append([param,value])
-	def remove_option(param,value):
+	def remove_option(self,param,value):
 		self.FileOptions.pop([param,value])
 	
-	def add_param_value(textline):
-		line_split = raw_config[textline].split("=")
+	def add_param_value(self,textline):
+		line_split = textline.split("=")
 		param = line_split[0].replace(' ','')
 		value = line_split[1]
 		if '"' not in value and "'" not in value:
@@ -53,7 +54,9 @@ class ConfigOptions():
 		self.add_option(param,value)
 		
 	def read_config_file(self,config_file):
+		print('Trying to open config file ...'),
 		raw_config = open(config_file, 'r').readlines()
+		print('OK')
 		for line in xrange(len(raw_config)):
 			raw_config[line] = raw_config[line].replace("\n","")
 			if len(raw_config[line].split("=")) == 2:
@@ -65,7 +68,7 @@ def pyephem_setup(ImageInfo):
 	ObsPyephem = ephem.Observer()
 	ObsPyephem.pressure = 0 # Dont consider atmospheric effects for now
 	ObsPyephem.elevation = 700
-	ObsPyephem.lat = ImageInfo.latitude*pi/180# '40.450941' # From cielosdemadrid webpage
-	ObsPyephem.lon = ImageInfo.longitude*pi/180#'-3.726065'
+	ObsPyephem.lat = ImageInfo.latitude*math.pi/180# '40.450941' # From cielosdemadrid webpage
+	ObsPyephem.lon = ImageInfo.longitude*math.pi/180#'-3.726065'
 	return ObsPyephem
 	
