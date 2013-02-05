@@ -32,7 +32,7 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 try:
 	from read_config import *
 except:
-	print 'One or more modules missing: please check'
+	print 'One or more modules missing: pyfits, read_config'
 	raise
 
 
@@ -89,7 +89,7 @@ class FitsImage(ImageTest):
 		print('Loading ScienceFrame ...'),
 		try: 
 			file_opened = pyfits.open(input_file)
-			self.fits_Data   = file_opened[0].data
+			self.fits_data   = file_opened[0].data
 			self.fits_Header = file_opened[0].header
 			self.fits_Texp   = float(ImageTest.correct_exposure(self.fits_Header))
 		except:	raise
@@ -161,7 +161,7 @@ class FitsImage(ImageTest):
 			else: print('OK')
 		
 		print('Calibrating image with MasterFlat and MasterDark ...'),
-		try: self.fits_Data = (self.fits_Data-self.SyntDark_Data)/self.MasterFlat_Data
+		try: self.fits_data = (self.fits_data-self.SyntDark_Data)/self.MasterFlat_Data
 		except: raise
 		else: print('OK')
 		

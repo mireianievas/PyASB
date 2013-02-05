@@ -37,8 +37,8 @@ except:
 	raise
 
 
-config_filename  = '/home/minaya/facultad/pyastmonucm/pyasb_config.cfg'
-catalog_filename = '/home/minaya/facultad/pyastmonucm/ducati_catalog.tsv' 
+config_filename  = 'pyasb_config.cfg'
+catalog_filename = 'ducati_catalog.tsv' 
 
 class InstrumentCalibration():
 	def __init__(self,InputFile):

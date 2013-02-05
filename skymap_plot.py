@@ -28,7 +28,7 @@ try:
 	import matplotlib.colors as mpc
 	import matplotlib.patches as mpp
 except:
-	print 'One or more modules missing: pyfits,HeaderTest'
+	print 'One or more modules missing: matplotlib'
 	raise SystemExit
 
 

@@ -16,7 +16,7 @@ try:
 	from math import pi,sin,cos,sqrt,atan2,asin
 	import ephem
 except:
-	print 'One or more modules missing: pyfits,CommonErrors,HeaderTest'
+	print 'One or more modules missing: numpy,math,ephem'
 	raise SystemExit
 
 __author__ = "Miguel Nievas"
