@@ -30,9 +30,9 @@ try:
 	import matplotlib.patches as mpp
 	import scipy.stats as stats
 	import math
-	import numpy as no
+	import numpy as np
 except:
-	print 'One or more modules missing: numpy,matplotlib'
+	print 'One or more modules missing: numpy,scipy,math,matplotlib'
 	raise SystemExit
 
 class BouguerFit():
@@ -46,7 +46,7 @@ class BouguerFit():
 		'''
 		
 		self.xdata    = [Star.airmass for Star in PhotometricCatalog.Stars]
-		self.ydata    = [Star.m25logF for Star in PhotometriCatalog.Stars]
+		self.ydata    = [Star.m25logF for Star in PhotometricCatalog.Stars]
 		self.yerr = [Star.m25logF_unc for Star in PhotometricCatalog.Stars]
 			
 		try:

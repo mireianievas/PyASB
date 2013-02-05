@@ -19,7 +19,7 @@ try:
 	import math
 	from astrometry import *
 except:
-	print 'One or more modules missing: pyfits,CommonErrors,HeaderTest'
+	print 'One or more modules missing: pyephem,math,astrometry'
 	raise SystemExit
 
 __author__ = "Miguel Nievas"
@@ -39,11 +39,15 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 class CatalogStar():
 	''' Extract information for each Star in the Catalog '''
 	def __init__(self,CatalogLine,ObsPyephem,ImageInfo):
-		self.basic_properties(CatalogLine)
-		self.pyephem_declaration(ObsPyephem)
-		self.set_actual_filter(ImageInfo)
-		self.imagedep_properties(ObsPyephem,ImageInfo)
 		self.destroy = False
+		try:
+			self.basic_properties(CatalogLine)
+			self.pyephem_declaration(ObsPyephem)
+			self.set_actual_filter(ImageInfo)
+			self.imagedep_properties(ObsPyephem,ImageInfo)
+		except:
+			print('Error reading Star');
+			self.destroy = True	
 	
 	def coord_pyephem_format(self,coord_str):
 		# Return coordinate in pyepheem str
@@ -54,7 +58,7 @@ class CatalogStar():
 			
 	def basic_properties(self,CatalogLine):
 		''' Object Star. Original catalog values :
-			recno, HDcode, RA1950, DEC1950, Vmag, U_V, B_V, R_V, I_V '''		
+			recno, HDcode, RA1950, DEC1950, Vmag, U_V, B_V, R_V, I_V '''
 		self.recno   = int(CatalogLine[0])
 		self.HDcode  = str(CatalogLine[1]).replace(' ','')
 		self.RA1950  = self.coord_pyephem_format(CatalogLine[2])
@@ -108,46 +112,39 @@ class CatalogStar():
 		Don't proceed if the star altitude < 0.
 		Return updated StarCatalog (image dependent)
 		'''
-		self.destroy = False
+		self.destroy = True
 		try:
 			pyephem_star = self.pyephem_declaration(ObsPyephem)
-			if float(pyephem_star.alt)*180.0/math.pi > float(ImageInfo.min_altitude):
-				print '1'
-				# Real coordinates (from catalog)
-				self.altit_real = float(pyephem_star.alt)*180.0/math.pi
-				self.zdist_real = 90.0-self.altit_real
-				self.azimuth    = float(pyephem_star.az)*180.0/math.pi
-				print '2'
-				# Apparent coordinates in sky. Atmospheric refraction effect.
-				self.altit_appa = atmospheric_refraction(self.altit_real,'dir')
-				self.zdist_appa = 90.0-self.altit_appa
-				self.airmass    = calculate_airmass(self.altit_appa)
-				print '3'
-				# Photometric properties
-				self.set_actual_filter(ImageInfo)
-				print '4'
-				# Image coordinates
-				XYCoordinates = horiz2xy(self.azimuth,self.altit_appa,ImageInfo)
-				self.Xcoord = XYCoordinates[0]
-				self.Ycoord = XYCoordinates[1]
-				print '5'
-				if self.Xcoord<0. or self.Ycoord<0.or self.Xcoord>ImageInfo.resolution[0] \
-				or self.Ycoord>ImageInfo.resolution[1] or self.altit_real < ImageInfo.min_altitude:
-					# Star doesn't fit in the image
-					self.destroy = True
-			else:
-				self.destroy = True
-			
-			if self.FilterMag > ImageInfo.max_magnitude:
-				self.destroy = True
+			assert(float(pyephem_star.alt)*180.0/math.pi > float(ImageInfo.min_altitude))
+			#print '1'
+			# Real coordinates (from catalog)
+			self.altit_real = float(pyephem_star.alt)*180.0/math.pi
+			self.zdist_real = 90.0-self.altit_real
+			self.azimuth    = float(pyephem_star.az)*180.0/math.pi
+			#print '2'
+			# Apparent coordinates in sky. Atmospheric refraction effect.
+			self.altit_appa = atmospheric_refraction(self.altit_real,'dir')
+			self.zdist_appa = 90.0-self.altit_appa
+			self.airmass    = calculate_airmass(self.altit_appa)
+			#print '3'
+			# Photometric properties
+			self.set_actual_filter(ImageInfo)
+			#print '4'
+			# Image coordinates
+			XYCoordinates = horiz2xy(self.azimuth,self.altit_appa,ImageInfo)
+			self.Xcoord = XYCoordinates[0]
+			self.Ycoord = XYCoordinates[1]
+			#print '5'
+			assert(self.Xcoord>0. and self.Ycoord>0. and self.Xcoord<ImageInfo.resolution[0] \
+			and self.Ycoord<ImageInfo.resolution[1] and self.altit_real > ImageInfo.min_altitude)
+			# If we get this line, the start should survive.
+			self.destroy=False
+			#print('Star OK')
 		except:
-			raise
-			self.destroy = True
-			print 'destroyed'
-		else:
-			if self.destroy == False:
-				print 'ok'
-		
+			pass
+			#raise
+			#print('destroyed')
+
 	def __del__(self):
 		#print('Deleting star ...'),
 		del(self)
@@ -158,8 +155,8 @@ class PhotometricStar(CatalogStar):
 	''' Derivated variables to be used in Bouguer fit'''
 	def photometry_bouguervar(self):
 		# Calculate parameters used in bouguer law fit
-		self._25logF      = 2.5*log10(self.flux_star)
-		self._25logF_unc  = (2.5/log(10))*self.flux_star_unc/self.flux_star
+		self._25logF      = 2.5*math.log10(self.starflux)
+		self._25logF_unc  = (2.5/math.log(10))*self.starflux_err/self.starflux
 		self.m25logF     = self.FilterMag+self._25logF
 		self.m25logF_unc = self._25logF_unc
 	
@@ -184,19 +181,28 @@ class PhotometricStar(CatalogStar):
 		def less_distance(Xi,Yi,reference):
 			return (Xi-X)**2 + (Yi-Y)**2 <=reference**2
 			
-		self.pixels1 = [Pixel for Pixel in Pixels_Region if \
-			less_distance(Pixel[0],Pixel[1],R1)]
-		self.pixels2 = [Pixel for Pixel in Pixels_Region if \
-			less_distance(Pixel[0],Pixel[1],R2) and\
-			not less_distance(Pixel[0],Pixel[1],R1)]
-		self.pixels3 = [Pixel for Pixel in Pixels_Region if \
-			less_distance(Pixel[0],Pixel[1],R3) and\
-			not less_distance(Pixel[0],Pixel[1],R2)]
+		self.pixels1 = [Pixel for Pixel in pixels_region if \
+			less_distance(Pixel[0],Pixel[1],self.R1)]
+		self.pixels2 = [Pixel for Pixel in pixels_region if \
+			less_distance(Pixel[0],Pixel[1],self.R2) and\
+			not less_distance(Pixel[0],Pixel[1],self.R1)]
+		self.pixels3 = [Pixel for Pixel in pixels_region if \
+			less_distance(Pixel[0],Pixel[1],self.R3) and\
+			not less_distance(Pixel[0],Pixel[1],self.R2)]
 	
 	''' Turn pixel coordinates into pixel values '''
 	@staticmethod
 	def pixel_list_values(pixel_list,fits_data):
-		return np.array([fits_data[pixel[0],pixel[1]] for pixel in pixel_list])
+		def valid_pixel(pixel,fits_data):
+			try:
+				fits_data[pixel[0],pixel[1]]
+			except:
+				return(False)
+			else:
+				return(True)
+		
+		return(np.array([fits_data[pixel[0],pixel[1]] \
+			for pixel in pixel_list if valid_pixel(pixel,fits_data)]))
 	
 	''' Background and Star Fluxes '''
 	def measure_background(self,fits_region):
@@ -207,14 +213,18 @@ class PhotometricStar(CatalogStar):
 		self.totalflux = np.sum(fits_region)
 		
 	def measure_starflux(self,pixelvalues_star,pixelvalues_background):
-		measure_background(self,pixelvalues_background)
-		measure_totalflux(self,pixelvalues_star)
+		self.measure_background(pixelvalues_background)
+		self.measure_totalflux(pixelvalues_star)
 		self.starflux = self.totalflux - len(pixelvalues_star)*self.skyflux
 		self.starflux_err = len(pixelvalues_star)*self.skyflux_err
 	
 	@staticmethod
 	def star_is_saturated(fits_region,max_value):
-		assert np.max(fits_region)<max_value
+		try:
+			assert(np.max(fits_region)<max_value)
+			return False
+		except:
+			return True
 	
 	
 	''' Detectability conditions '''
@@ -246,7 +256,7 @@ class PhotometricStar(CatalogStar):
 		except:
 			raise	
 	
-	def optimal_aperture_photometry(self,min_radius,max_radius):
+	def optimal_aperture_photometry(self,FitsImage,min_radius,max_radius):
 		'''
 		Optimize the aperture to minimize uncertainties and assert
 		all flux is contained in R1
@@ -255,32 +265,35 @@ class PhotometricStar(CatalogStar):
 		continue_iterate = True
 		while continue_iterate==True and radius<max_radius:
 			radius += 1
-			pixels1,pixels2,pixels3 = self.apphot_pixels(self.Xcoord,self.Ycoord)
+			self.apphot_pixels(self.Xcoord,self.Ycoord)
 			old_starflux = self.starflux
-			region_background = self.pixel_list_values(pixels3,FitsImage.fits_data)
-			region_star = self.pixel_list_values(pixels1,FitsImage.fits_data)
-			measure_starflux(self,region_star,region_background)
+			region_background = self.pixel_list_values(self.pixels3,FitsImage.fits_data)
+			region_star = self.pixel_list_values(self.pixels1,FitsImage.fits_data)
+			self.measure_starflux(region_star,region_background)
 			if self.starflux < old_starflux*1.02:
 				continue_iterate = False
-		assert radius<max_radius
+		assert(radius<max_radius)
 	
 	'''Aperture photometry. The main function'''	
 	def stellar_aperture_photometry(self,FitsImage,ImageInfo):
 		# Define aperture disk for photometry
-		R1,R2,R3 = self.estimate_photometric_radius(ImageInfo)
-		pixels1,pixels2,pixels3 = self.apphot_pixels(self.Xcoord,self.Ycoord)
-		region_background = self.pixel_list_values(pixels3,FitsImage.fits_data)
-		region_star = self.pixel_list_values(pixels1,FitsImage.fits_data)
+		self.estimate_photometric_radius(ImageInfo)
+		self.apphot_pixels(self.Xcoord,self.Ycoord)
+		region_background = self.pixel_list_values(self.pixels3,FitsImage.fits_data)
+		region_star = self.pixel_list_values(self.pixels1,FitsImage.fits_data)
 		# Measure fluxes
-		self.star_is_saturated(region_star)
+		self.star_is_saturated(region_star,2**(ImageInfo.ccd_bits-1))
 		self.measure_starflux(region_star,region_background)
 		
 		# Test if its detectable
-		assert self.starflux >= self.star_min_flux_detectable(ImageInfo)
-		
-		# More accurate photometry
-		optimal_aperture_photometry(pixels1,R1/2,R2)
-		photometry_bouguervar()
+		try:
+			assert(self.starflux >= self.star_min_flux_detectable(ImageInfo))
+		except:
+			self.destroy=True
+		else:
+			# More accurate photometry
+			self.optimal_aperture_photometry(FitsImage,self.R1/2,self.R2)
+			self.photometry_bouguervar()
 
 
 class CatalogFile():
@@ -319,21 +332,28 @@ class PhotometricCatalog():
 		self.ProcessedCatalog = []
 		for Star in RawCatalog.CatalogLines:
 			PhotometricStar_ = PhotometricStar(Star,ObsPyephem,ImageInfo)
-			self.ProcessedCatalog.append(PhotometricStar_)
+			PhotometricStar_.imagedep_properties(ObsPyephem,ImageInfo)
+			try:
+				assert(PhotometricStar.destroy==False)
+			except:
+				self.ProcessedCatalog.append(PhotometricStar_)
+			else:
+				PhotometricStar.destroy=True
 		
 		# Filter the catalog
 		self.Stars = [Star for Star in self.ProcessedCatalog if Star.destroy==False]
+		#print(len(self.Stars))
 		RawCatalog.__del__()
 	
 	''' Detect and measure star fluxes in the image. Destroy bad stars'''
 	def photometric_measures(self,FitsImage,ImageInfo):
-		try:
-			for Star in self.ProcessedCatalog:
+		for Star in self.Stars:
+			try:
 				Star.stellar_aperture_photometry(FitsImage,ImageInfo)
-		except:
-			raise
-			print 'phot error!'
-			Star.destroy=True
+			except:
+				raise
+				self.destroy=True
+		
 		self.Stars = [Star for Star in self.ProcessedCatalog if Star.destroy==False]
 	
 	def plot_starmap(self,ImageInfo,ObsPyephem):

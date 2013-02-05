@@ -15,7 +15,7 @@ try:
 	import ephem
 	import math
 except:
-	print 'One or more modules missing: pyephem'
+	print 'One or more modules missing: pyephem,math'
 	raise SystemExit
 
 __author__ = "Miguel Nievas"
