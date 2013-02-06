@@ -41,10 +41,15 @@ config_filename  = 'pyasb_config.cfg'
 catalog_filename = 'ducati_catalog.tsv' 
 
 class InstrumentCalibration():
-	def __init__(self,InputFile):
+	def __init__(self,InputFile,BouguerFile=None):
 		#ConfigOptions = ConfigOptions(config_name)
 		FitsImage_ = FitsImage(InputFile)
 		ImageInfo_ = ImageInfo(FitsImage_.fits_Header,config_filename)
+		if BouguerFile==None:
+			ImageInfo_.bouguerplot_file = False
+		else:
+			ImageInfo_.bouguerplot_file = BouguerFile
+		
 		FitsImage_.reduce_science_frame(ImageInfo_.darkframe,ImageInfo_.sel_flatfield,MasterBias=None)
 		
 		ObsPyephem_ = pyephem_setup(ImageInfo_)
@@ -60,6 +65,10 @@ class InstrumentCalibration():
 		SkyBrightnessGraph_ = SkyBrightnessGraph(SkyBrightness_,ImageInfo_,ObsPyephem_,BouguerFit_.Regression_)
 		
 if __name__ == '__main__':
-	Imag = InstrumentCalibration('/home/minaya/facultad/beca_mec/coordenadas/Jonhson_B20100914_000305.fit')
+	bouguerplot_file = "~/mibouguerplot.png"
+	# Calibrate instrument with image
+	Imag = InstrumentCalibration(
+		InputFile = '/home/minaya/facultad/beca_mec/coordenadas/Jonhson_B20100914_000305.fit',
+		BouguerFile = bouguerplot_file)
 		
 		
