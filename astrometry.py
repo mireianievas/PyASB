@@ -48,11 +48,11 @@ def xy2horiz(X,Y,ImageInfo):
 	Y = Y - ImageInfo.resolution[1]/2-ImageInfo.delta_y
 	Rfactor = sqrt(X**2 + Y**2)/ImageInfo.radial_factor
 	altitude = (180.0/pi)*asin(1-0.5*(pi*Rfactor/180.0)**2)
-	azimuth  = 360+180-(Imagen.azimut_zeropoint + 180.0*atan2(Y,-X)/pi)%360
+	azimuth  = 360+180-(ImageInfo.azimuth_zeropoint + 180.0*atan2(Y,-X)/pi)%360
 	while azimuth<0:
 		azimuth += 360
-	while azimith>=360:
-		azimith -= 360
+	while azimuth>=360:
+		azimuth -= 360
 	return azimuth,altitude
 
 def zenith_position(ImageInfo):

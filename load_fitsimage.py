@@ -206,6 +206,7 @@ class ImageInfo(ImageTest,ConfigOptions):
 		for option in self.FileOptions:
 			if   option[0]=="obs_latitude":        self.latitude=float(option[1])
 			elif option[0]=="obs_longitude":       self.longitude=float(option[1])
+			elif option[0]=="obs_name":            self.obs_name=str(option[1])
 			elif option[0]=="delta_x":             self.delta_x=float(option[1])
 			elif option[0]=="delta_y":             self.delta_y=float(option[1])
 			elif option[0]=="radial_factor":       self.radial_factor=float(option[1])

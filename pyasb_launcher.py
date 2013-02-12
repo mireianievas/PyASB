@@ -38,13 +38,13 @@ except:
 
 
 config_filename  = 'pyasb_config.cfg'
-catalog_filename = 'ducati_catalog.tsv' 
 
 class InstrumentCalibration():
 	def __init__(self,InputFile,BouguerFile=None):
 		#ConfigOptions = ConfigOptions(config_name)
 		FitsImage_ = FitsImage(InputFile)
 		ImageInfo_ = ImageInfo(FitsImage_.fits_Header,config_filename)
+		
 		if BouguerFile==None:
 			ImageInfo_.bouguerplot_file = False
 		else:
@@ -55,10 +55,11 @@ class InstrumentCalibration():
 		ObsPyephem_ = pyephem_setup(ImageInfo_)
 		PlatformHelp_ = PlatformHelp()
 		
-		PhotometricCatalog_ = PhotometricCatalog(ObsPyephem_,ImageInfo_,catalog_filename)
-		PhotometricCatalog_.photometric_measures(FitsImage_,ImageInfo_)
+		ImageInfo_.catalog_filename = 'ducati_catalog.tsv'
+		ImageInfo_.skymap_file = "test_map.png"
+		StarCatalog_ = StarCatalog(FitsImage_,ImageInfo_,ObsPyephem_)
 		
-		BouguerFit_ = BouguerFit(ImageInfo_,PhotometricCatalog_)
+		BouguerFit_ = BouguerFit(ImageInfo_,StarCatalog_ )
 		BouguerFit_.bouguer_plot(ImageInfo_,ObsPyephem_)
 		
 		SkyBrightness_ = SkyBrightness(FitsImage_.fits_Data,ImageInfo_,BouguerFit_.Regression_)
