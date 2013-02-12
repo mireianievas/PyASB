@@ -39,6 +39,10 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 class Star():
 	def __init__(self,StarCatalogLine,FitsImage,ImageInfo,ObsPyephem):
+		''' Takes StarCatalogLine (line from catalog file) and 
+			  FitsImage, ImageInfo and ObsPyephem objects
+			Returns a Star object with photometric and astrometic properties 
+			  or a destroy flag if errors ocurred during process'''
 		self.destroy=False
 		if self.destroy==False: 
 			if DEBUG==True:
@@ -251,16 +255,6 @@ class Star():
 				for y in xrange(len(self.fits_region_complete))\
 				for x in xrange(len(self.fits_region_complete[0])) \
 				if less_distance(x,y,self.R3) and not less_distance(x,y,self.R2)]
-			
-			'''
-			self.pixels1 = [Pixel for Pixel in self.fits_region_complete if \
-				less_distance(Pixel[0],Pixel[1],self.R1)]
-			self.pixels2 = [Pixel for Pixel in self.fits_region_complete if \
-				less_distance(Pixel[0],Pixel[1],self.R2) and\
-				not less_distance(Pixel[0],Pixel[1],self.R1)]
-			self.pixels3 = [Pixel for Pixel in self.fits_region_complete if \
-				less_distance(Pixel[0],Pixel[1],self.R3) and\
-				not less_distance(Pixel[0],Pixel[1],self.R2)]'''
 			
 			# Sky background flux
 			self.skyflux = np.median(self.pixels3)
