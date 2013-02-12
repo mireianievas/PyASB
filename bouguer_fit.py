@@ -43,7 +43,7 @@ class BouguerFit():
 		print('Fitting Bouguer Law to derive extinction and zeropoint ...')
 		self.bouguer_fit(ImageInfo,PhotometricCatalog)
 		if DEBUG==True:
-			print(len(PhotometricCatalog.Stars))
+			print(len(StarCatalog.StarList))
 	
 	def bouguer_fit(self,ImageInfo,PhotometricCatalog):
 		''' 
@@ -51,9 +51,9 @@ class BouguerFit():
 		Return regression parameters (ZeroPoint, Extinction)
 		'''
 		
-		self.xdata    = [Star.airmass for Star in PhotometricCatalog.Stars]
-		self.ydata    = [Star.m25logF for Star in PhotometricCatalog.Stars]
-		self.yerr = [Star.m25logF_unc for Star in PhotometricCatalog.Stars]
+		self.xdata    = [Star.airmass for Star in StarCatalog.StarList]
+		self.ydata    = [Star.m25logF for Star in StarCatalog.StarList]
+		self.yerr = [Star.m25logF_unc for Star in StarCatalog.StarList]
 			
 		try:
 			fixed_y     = ImageInfo.zeropoint
