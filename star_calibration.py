@@ -97,6 +97,11 @@ class Star():
 		
 		if self.destroy==False:
 			if DEBUG==True:
+				print('Photometric bouguer variables ...')
+			self.photometry_bouguervar()
+		
+		if self.destroy==False:
+			if DEBUG==True:
 				print('DONE')
 		
 	def from_catalog(self,CatalogLine):
@@ -151,6 +156,11 @@ class Star():
 			self.FilterMag = self.Imag
 			self.Color     = self.I_V
 		else: self.destroy=True
+		
+		try:
+			assert(self.FilterMag<ImageInfo.max_magnitude)
+		except:
+			self.destroy=True
 	
 	def star_astrometry(self,ObsPyephem,ImageInfo):
 		''' Perform astrometry. Returns (if star is visible and well defined) its position on the sky and image'''
@@ -321,6 +331,16 @@ class Star():
 				assert(radius<self.R2)
 		except:
 			self.destroy=True
+	
+	def photometry_bouguervar(self):
+		# Calculate parameters used in bouguer law fit
+		try:
+			self._25logF      = 2.5*math.log10(self.starflux)
+			self._25logF_unc  = (2.5/math.log(10))*self.starflux_err/self.starflux
+			self.m25logF     = self.FilterMag+self._25logF
+			self.m25logF_unc = self._25logF_unc
+		except:
+			self.destroy=True
 
 class StarCatalog():
 	''' This class processes the catalog.
@@ -332,7 +352,7 @@ class StarCatalog():
 		self.load_catalog_file(ImageInfo.catalog_filename)
 		print('Star processing ...')
 		self.process_catalog(FitsImage,ImageInfo,ObsPyephem)
-		self.plot_starmap(FitsImage,ImageInfo,ObsPyephem)
+		#self.plot_starmap(FitsImage,ImageInfo,ObsPyephem)
 	
 	def load_catalog_file(self,catalog_filename):
 		''' Returns Catalog lines from the catalog_filename '''
@@ -368,7 +388,8 @@ class StarCatalog():
 				pass
 			else:
 				self.StarList_woPhot.append(PhotometricStar)
-		print(len(self.StarList_woPhot),len(self.StarList))
+		print(" - Total stars: "+str(len(self.StarList_woPhot)))
+		print(" - With photometry: " +str(len(self.StarList)))
 		
 	def plot_starmap(self,FitsImage,ImageInfo,ObsPyephem):
 		''' Generate the starmap plot '''

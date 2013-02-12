@@ -13,6 +13,7 @@ ____________________________
 '''
 
 try:
+	import numpy as np
 	import pyfits
 except:
 	print 'One or more modules missing: pyfits,HeaderTest'
@@ -112,6 +113,8 @@ class FitsImage(ImageTest):
 		try:
 			MasterFlat_HDU    = pyfits.open(MasterFlat)
 			self.MasterFlat_Data   = MasterFlat_HDU[0].data
+			# Normalize MasterFlat
+			self.MasterFlat_Data = self.MasterFlat_Data / np.mean(self.MasterFlat_Data)
 			self.MasterFlat_Header = MasterFlat_HDU[0].header
 			self.MasterFlat_Texp   = float(ImageTest.correct_exposure(self.MasterFlat_Header))
 		except: raise

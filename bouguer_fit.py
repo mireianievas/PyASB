@@ -45,7 +45,7 @@ class BouguerFit():
 		if DEBUG==True:
 			print(len(StarCatalog.StarList))
 	
-	def bouguer_fit(self,ImageInfo,PhotometricCatalog):
+	def bouguer_fit(self,ImageInfo,StarCatalog):
 		''' 
 		Fit measured fluxes to an extinction model
 		Return regression parameters (ZeroPoint, Extinction)
@@ -90,6 +90,7 @@ class BouguerFit():
 		
 		if ImageInfo.bouguerplot_file!=False:
 			# Show or save the bouguer plot
+			bouguerfigure.savefig("/home/minaya/prueba.png")
 			show_or_save_bouguerplot(bouguerfigure,ImageInfo,ObsPyephem)
 
 class TheilSenRegression():
@@ -184,7 +185,7 @@ class TheilSenRegression():
 		xmedcuad = np.median(self.Xpoints)**2
 		xcuaddif = self.Xpoints**2 - xmedcuad
 		xdensity = np.sum(xcuaddif)
-		sigma2_res = (1./(self.Nstars_final-2))*sum(self.residuals)
+		sigma2_res = (1./(self.Nstars_final-2))*abs(sum(self.residuals))
 		sigma2_slope = sigma2_res/abs(xdensity)
 		sigma2_int = sigma2_res*(1./self.Nstars_final + 1.*xmedcuad/abs(xdensity))
 		
