@@ -40,9 +40,9 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 class Star():
 	def __init__(self,StarCatalogLine,FitsImage,ImageInfo,ObsPyephem):
 		''' Takes StarCatalogLine (line from catalog file) and 
-			  FitsImage, ImageInfo and ObsPyephem objects
-			Returns a Star object with photometric and astrometic properties 
-			  or a destroy flag if errors ocurred during process'''
+		      FitsImage, ImageInfo and ObsPyephem objects
+		    Returns a Star object with photometric and astrometic properties 
+		      or a destroy flag if errors ocurred during process'''
 		self.destroy=False
 		if self.destroy==False: 
 			if DEBUG==True:
