@@ -12,7 +12,6 @@ ____________________________
 '''
 
 try:
-	import numpy as np
 	from math import pi,sin,cos,sqrt,atan2,asin
 	import ephem
 except:
@@ -37,7 +36,7 @@ def horiz2xy(azimuth,altitude,ImageInfo):
 	Rfactor = ImageInfo.radial_factor*(180.0/pi)*sqrt(2*(1-sin(altitude*pi/180.0)))
 	X = ImageInfo.resolution[0]/2 + ImageInfo.delta_x -\
 		Rfactor*cos(azimuth*pi/180.0-ImageInfo.azimuth_zeropoint*pi/180.0)
-	Y = ImageInfo.resolution[1]/2 + ImageInfo.delta_x +\
+	Y = ImageInfo.resolution[1]/2 + ImageInfo.delta_y +\
 		Rfactor*sin(azimuth*pi/180.0-ImageInfo.azimuth_zeropoint*pi/180.0)
 	return X,Y
 
@@ -45,7 +44,7 @@ def xy2horiz(X,Y,ImageInfo):
 	# Return horizontal coordinates from X,Y position in the image.
 	# azimuth and altitude are in degrees.
 	X = X - ImageInfo.resolution[0]/2-ImageInfo.delta_x
-	Y = Y - ImageInfo.resolution[1]/2-ImageInfo.delta_y
+	Y = Y - ImageInfo.resolution[1]/2+ImageInfo.delta_y
 	Rfactor = sqrt(X**2 + Y**2)/ImageInfo.radial_factor
 	altitude = (180.0/pi)*asin(1-0.5*(pi*Rfactor/180.0)**2)
 	azimuth  = 360+180-(ImageInfo.azimuth_zeropoint + 180.0*atan2(Y,-X)/pi)%360

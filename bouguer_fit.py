@@ -79,11 +79,11 @@ class BouguerFit():
 		
 		try:
 			plot_infotext = \
-				ImageInfo.date_string+str(ObsPyephem.lat)+5*" "+str(ObsPyephem.lon)+"\n"+\
+				ImageInfo.date_string+"\n"+str(ObsPyephem.lat)+5*" "+str(ObsPyephem.lon)+"\n"+\
 				ImageInfo.used_filter+4*" "+"Rcorr="+str("%.3f"%float(self.Regression.kendall_tau))+"\n"+\
 				"C="+str("%.3f"%float(self.Regression.mean_zeropoint))+"+/-"+str("%.3f"%float(self.Regression.error_zeropoint))+"\n"+\
-				"K="+str("%.3f"%float(self.Regression.mean_slope))+"+/-"+str("%.3f"%float(self.Regression.error_slope))+"\n"+\
-				str("%.0f"%(100.*self.Regression.Nstars_rel))+"% of "+str(self.Regression.Nstars_initial)+" photometric measures shown"
+				"K="+str("%.3f"%float(self.Regression.extinction))+"+/-"+str("%.3f"%float(self.Regression.error_slope))+"\n"+\
+				str("%.0f"%(self.Regression.Nstars_rel))+"% of "+str(self.Regression.Nstars_initial)+" photometric measures shown"
 			bouguerplot.text(0.1,0.1,plot_infotext,fontsize='x-small',transform = bouguerplot.transAxes)
 		except:
 			raise
@@ -91,7 +91,7 @@ class BouguerFit():
 		if ImageInfo.bouguerplot_file!=False:
 			# Show or save the bouguer plot
 			bouguerfigure.savefig("/home/minaya/prueba.png")
-			show_or_save_bouguerplot(bouguerfigure,ImageInfo,ObsPyephem)
+			#show_or_save_bouguerplot(bouguerfigure,ImageInfo,ObsPyephem)
 
 class TheilSenRegression():
 	# Robust Theil Sen estimator, instead of the classic least-squares.
@@ -139,6 +139,7 @@ class TheilSenRegression():
 		if self.fixed_zp == True:
 			self.mean_zeropoint = self.y0
 			self.error_zeropoint = self.y0err
+			
 		self.Nstars_final = len(self.Ypoints)
 	
 	def build_matrix_values(self):
@@ -170,7 +171,8 @@ class TheilSenRegression():
 			for c in xrange(len(self.slopes_matrix[0])) if c>l])
 	
 	def calculate_mean_slope(self):
-		self.mean_slope  = np.median(self.upper_diag_slopes)
+		self.mean_slope = np.median(self.upper_diag_slopes)
+		self.extinction = -self.mean_slope
 		
 	def build_zeropoint_array(self):
 		self.zeropoint_array = self.Ypoints - self.Xpoints*self.mean_slope
@@ -194,8 +196,7 @@ class TheilSenRegression():
 	
 	def calculate_kendall_tau(self):
 		self.kendall_tau = \
-			(len(self.upper_diag_slopes[self.upper_diag_slopes>0]) - \
-			len(self.upper_diag_slopes[self.upper_diag_slopes<0])) / \
-			len(self.upper_diag_slopes)
+			(1.*sum(self.upper_diag_slopes>0)-1.*sum(self.upper_diag_slopes<0))\
+			/(1.*len(self.upper_diag_slopes))
 			
 

@@ -135,6 +135,11 @@ class FitsImage(ImageTest):
 		Load MasterDark and MasterFlat. MasterBias is neccesary only if working 
 		with different exposures between Dark and Science frames
 		'''
+		
+		# Backup original data
+		print('Backup original (non-calibrated) data')
+		self.fits_data_notcalibrated = np.array(self.fits_data)
+		
 		self.load_dark(MasterDark)
 		self.load_flat(MasterFlat)
 		
