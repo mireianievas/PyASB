@@ -76,5 +76,6 @@ def pyephem_setup(ImageInfo):
 	ObsPyephem.elevation = 700
 	ObsPyephem.lat = ImageInfo.latitude*math.pi/180# '40.450941' # From cielosdemadrid webpage
 	ObsPyephem.lon = ImageInfo.longitude*math.pi/180#'-3.726065'
+	ObsPyephem.date = ImageInfo.date_string
 	return ObsPyephem
 	

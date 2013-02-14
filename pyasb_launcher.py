@@ -32,6 +32,7 @@ try:
 	from bouguer_fit import *
 	from sky_brightness import *
 	from skymap_plot import *
+	import time
 except:
 	print 'One or more modules missing: please check'
 	raise
@@ -50,7 +51,10 @@ class InstrumentCalibration():
 		else:
 			ImageInfo_.bouguerplot_file = BouguerFile
 		
-		FitsImage_.reduce_science_frame(ImageInfo_.darkframe,ImageInfo_.sel_flatfield,MasterBias=None)
+		try:
+			FitsImage_.reduce_science_frame(ImageInfo_.darkframe,ImageInfo_.sel_flatfield,MasterBias=None)
+		except:
+			print('Cannot reduce science frame')
 		
 		ObsPyephem_ = pyephem_setup(ImageInfo_)
 		PlatformHelp_ = PlatformHelp()
@@ -59,17 +63,21 @@ class InstrumentCalibration():
 		ImageInfo_.skymap_file = "test_map.png"
 		StarCatalog_ = StarCatalog(FitsImage_,ImageInfo_,ObsPyephem_)
 		
+		print('Star Map plot ...')
+		SkyMap_ = SkyMap(StarCatalog_,ImageInfo_,FitsImage_)
+		
 		BouguerFit_ = BouguerFit(ImageInfo_,StarCatalog_ )
 		BouguerFit_.bouguer_plot(ImageInfo_,ObsPyephem_)
 		
 		SkyBrightness_ = SkyBrightness(FitsImage_.fits_Data,ImageInfo_,BouguerFit_.Regression_)
 		SkyBrightnessGraph_ = SkyBrightnessGraph(SkyBrightness_,ImageInfo_,ObsPyephem_,BouguerFit_.Regression_)
 		
+		
 if __name__ == '__main__':
 	bouguerplot_file = "~/mibouguerplot.png"
 	# Calibrate instrument with image
 	Imag = InstrumentCalibration(
-		InputFile = '/home/minaya/facultad/beca_mec/coordenadas/Jonhson_B20100914_000305.fit',
+		InputFile = './Johnson_V20130105_003111.fit.gz',
 		BouguerFile = bouguerplot_file)
-		
-		
+	
+	
