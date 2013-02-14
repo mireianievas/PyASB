@@ -203,5 +203,4 @@ class TheilSenRegression():
 		self.kendall_tau = \
 			(1.*sum(self.upper_diag_slopes>0)-1.*sum(self.upper_diag_slopes<0))\
 			/(1.*len(self.upper_diag_slopes))
-			
-
+		
