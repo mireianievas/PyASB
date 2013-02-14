@@ -26,237 +26,217 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 
 try:
-	import matplotlib.pyplot as mpl
+	import numpy as np
+	import scipy.interpolate as sint
+	import matplotlib as mpl
+	import matplotlib.pyplot as plt
 	import matplotlib.colors as mpc
 	import matplotlib.patches as mpp
 except:
-	print('One or more modules missing: matplotlib')
+	print('One or more modules missing: numpy, matplotlib')
 	raise SystemExit
-
-
 
 class SkyBrightness():
 	'''
 	Class with Sky Brightness measure methods.
-	Init requires fits_data (numpy array with raw data), 
-		ImageInfo and Regression.
+	Init requires FitsImage, ImageCoordinates, ImageInfo and Bouguerfit objects.
 	'''
-	def __init__(self,fits_data,ImageInfo,Regression):
-		print('SkyBrightness(): Loading calibration data ...'),
-		try:
-			self.fits_data = fits_data
-			self.exposure    = ImageInfo.exposure
-			self.pixel_scale = ImageInfo.pixel_scale
-			self.zp        = Regression.mean_zeropoint
-			self.zp_err    = Regression.error_zeropoint
-		except:
-			print('Failed')
-			raise
-		else:
-			print('OK')
-		
-	''' Image processing '''
-	def _sky_brightness_measure(self,image_region):
-		'''
-		Return measured sky brightness with its error at a given point in image.
-		image_region must contain a pixel list
-		'''
-
-		# Measure Sky fluxes
-		sky_flux,sky_flux_err = sky_flux_measure(self,image_region)
-		# Compute Sky brightness in magnitudes
-		sky_brightness,sky_brightness_err = \
-			self.zp-2.5*log10(sky_flux/(self.exposure*self.pixel_scale)),\
-			sqrt(self.zp_err**2 + (2.5*sky_flux_err/(log(10)*sky_flux))**2)
-		
-		return sky_brightness,sky_brightness_err
-		
-	def _sky_brightness_region(self,azimuth,altitude,radius):
-		'''
-		Return a class with SB measured at a given azimuth/altitude position
-		with a fixed integration radius in pixels.
-		'''
-		Xcenter,Ycenter = horiz2xy(azimuth,altitude,ImageInfo)
-		image_region = apphot_pixels(Xcenter,Ycenter,radius,radius,radius,ImageInfo)[0]
-		sky_brightness,sky_brightness_err = sky_brightness_measure(self,image_region)
-		
-		return _sky_brightness_measure(self,image_region)
 	
-	def measure_in_grid(self):
-		'''
-		Measure sky brightness only at selected points in the sky
-		Return the sky brightness table
-		'''
-		print('SkyBrightness(): Measuring Sky Brightness on the standard grid ...'),
-		try:
-			radius = 50 # px
-			self.ALTgrid = np.arange(10,90+1,10) # degrees
-			self.AZgrid  = np.arange(0,360+1,10) # degrees
-			self.SBgrid  = [_sky_brightness_region(self,az,alt,radius) \
-				for az in self.SBazlist for alt in self.SBaltlist]
-		except:
-			print('Failed')
-			raise
-		else:
-			print('OK')
+	def __init__(self,FitsImage,ImageInfo,ImageCoordinates,BouguerFit):
+		self.measure_in_grid(FitsImage,ImageInfo,ImageCoordinates,BouguerFit)
+		self.measure_in_positions()
 	
-	def measure_positions(self,AZlist,ALTlist,RADlist=None):
-		'''
-		Measure sky brightness only at special selected regions (zenith p.e.)
-		AZlist (deg), ALTlist (deg) and RAD (optional, in pixels) are lists
-		'''
-		print('SkyBrightness(): Measuring Sky Brightness on selected positions ...'),
-		try:
-			AZlist[len(ALTlist)-1];
-			ALTlist[len(AZlist)-1];
-			if RADlist==None:
-				RADlist = [50]*len(AZlist)
+	@staticmethod
+	def sky_brightness_region(BouguerFit,ImageInfo,fits_region_values):
+		sky_flux = np.median(fits_region_values)
+		sky_flux_err = np.std(fits_region_values)
+		sky_brightness = BouguerFit.Regression.mean_zeropoint - \
+			2.5*np.log10(sky_flux/(ImageInfo.exposure*ImageInfo.pixel_scale))
+		sky_brightness_err = np.sqrt(BouguerFit.Regression.error_zeropoint**2 +\
+			(2.5*sky_flux_err/(np.log(10)*sky_flux))**2)
+		
+		return(sky_brightness,sky_brightness_err)
+	
+	def measure_in_grid(self,FitsImage,ImageInfo,ImageCoordinates,BouguerFit):
+		''' Returns sky brightness measures in a grid with a given separation 
+		    in degrees and interpolates the result with griddata.'''
+		azseparation  = 30
+		altseparation = 15
+		
+		AZdirs  = np.arange(0,360+1,azseparation)
+		ZDdirs = np.arange(0,90+1,altseparation)
+		
+		self.AZgrid,self.ZDgrid = np.meshgrid(AZdirs,ZDdirs)
+		self.ALTgrid = 90.-self.ZDgrid
+		
+		def sky_brightness_point(az,zd):
+			alt = 90.-zd
+			fits_region_values = FitsImage.fits_data[\
+				(np.array(ImageCoordinates.altitude_map>=alt-altseparation/2.)*\
+				 np.array(ImageCoordinates.altitude_map<alt+altseparation/2.)\
+				)*(\
+				(np.array(ImageCoordinates.azimuth_map>=az-azseparation/2.)*\
+				 np.array(ImageCoordinates.azimuth_map<az+azseparation/2.)\
+				)+\
+				(np.array(ImageCoordinates.azimuth_map>=az-azseparation/2.+360)+\
+				 np.array(ImageCoordinates.azimuth_map<az+azseparation/2.-360)\
+				))]
+				# The last two lines must be set to get a smooth transition between 360 and 0 degrees azimuth
 			
-			self.AZselected  = AZlist
-			self.ALTselected = ALTlist
-			self.SBselected  = [sky_brightness_region(self,AZlist[k],ALTlist[k],RADlist[k]) \
-				for k in xrange(len(AZlist))]
-		except:
-			print('Failed')
-			raise
-		else:
-			print('OK')
+			return(self.sky_brightness_region(BouguerFit,ImageInfo,fits_region_values))
+		
+		sky_brightness_list = np.vectorize(sky_brightness_point)
+		self.SBgrid,self.SBgrid_errors = np.array(sky_brightness_list(self.AZgrid,self.ZDgrid))
+		
+		# Once we measured the sky brightness in the image, convert to radians the azimuths
+		self.AZgrid = self.AZgrid*np.pi/180.
+		
+		# Griddata.
+		self.AZgridi,self.ZDgridi = np.mgrid[0:2*np.pi:1000j, 0:75:1000j]
+		self.ALTgridi = 90. - self.ZDgridi
+		
+		coord_reshape = [[self.AZgrid[j][k],self.ZDgrid[j][k]] \
+			for k in xrange(len(self.AZgrid[0])) for j in xrange(len(self.AZgrid))]
+		
+		data_reshape = [ self.SBgrid[j][k] \
+			for k in xrange(len(self.AZgrid[0])) for j in xrange(len(self.AZgrid))]
+		
+		self.SBgridi = sint.griddata(coord_reshape,data_reshape, \
+			(self.AZgridi,self.ZDgridi), method='linear')
+	
+	def measure_in_positions(self):
+		# Measure Sky Brightness at zenith
+		self.SBzenith = np.median(self.SBgrid[self.ZDgrid==0])
+		self.SBzenith_err = np.max(self.SBgrid_errors[self.ZDgrid==0])
+		
 
 class SkyBrightnessGraph():
-	'''
-	Class with Sky Brightness graph methods
-	'''
-	def __init__(self,SkyBrightness,ImageInfo,ObsPyephem,Regression):
-		print('SkyBrightnessGraph(): parameters and data loading ...'),
-		try:
-			# Measures
-			self.AZgrid  = SkyBrightness.AZgrid  *pi/180.                   # degrees
-			self.ALTgrid = SkyBrightness.ALTgrid *pi/180.                   # degrees
-			self.Radial  = pi/180. - self.ALTgrid                            # degrees
-			self.SBgrid  = [SBtuple[0] for SBtuple in SkyBrightness.SBgrid] # mag/arcsec2
-			self.Flux    = 10**(-0.4*self.SBgrid)                           # Flux (not calibrated)
-			# Sky Brightness at zenith
-			self.SBzenith     = SkyBrightness.SBgrid[0]
-			self.SBzenith_err = SkyBrightness.SBgrid[1]
-			# Graph parameters
-			self.Title     = ImageInfo.SBTitle     # Graph title (str)
-			self.ImageFilter   = ImageInfo.used_filter
-			try: 
-				self.ContourLimits = ImageInfo.ContourLimits[self.ImageFilter]
-			except:
-				self.ContourLimits = [np.min(self.SBgrid),np.max(self.SBgrid)]
-			# Other data	
-			try:	
-				extinction     = Regression.mean_slope
-				extinction_err = Regression.error_slope
-				self.extinction_str = "K="+str("%.3f" % float(extinction))+"+-"+\
-					str("%.3f" % float(extinction_err))+"\n"
-			except:
-				self.extinction_str = ""
-			# Observatory
-			self.ObsPyephem = ObsPyephem
-		except:
-			print('Failed')
-			raise
-		else:
-			print('OK')
+	def __init__(self,SkyBrightness,ImageInfo,BouguerFit):
+		self.create_plot()
+		self.plot_labels(SkyBrightness,ImageInfo,BouguerFit)
+		self.define_contours(ImageInfo)
+		self.ticks_and_locators()
+		self.plot_data(SkyBrightness)
+		self.color_bar()
+		self.show_map()
 	
-	def grid_data(self):
-		'''
-		Grid scattered data
-		'''
-		print('SkyBrightnessGraph(): gridding data ...'),
-		try:
-			self.Radiali  = np.linspace(0*pi/180,75*pi/180,76)
-			self.AZgridi  = np.linspace(0,360*pi/180,361)
-			self.Fluxi    = griddata((self.AZgrid,self.Radial),self.Flux,\
-				(self.azimuthi[None,:],self.radiali[:,None]),method='linear',\
-				fill_value=min(self.Flux))
-			self.SBgridi  = -2.5*log10(self.Fluxi)
-		except:
-			print('Failed')
-			raise
-		else:
-			print('OK')
+	def create_plot(self):
+		''' Create the figure (empty) with matplotlib '''
+		self.SBfigure = plt.figure(figsize=(8,8))
+		self.SBgraph  = self.SBfigure.add_subplot(111,projection='polar')
 	
-	def define_contours(self):
-		'''
-		Optimize contours for a given data
-		'''
+	def plot_data(self,SkyBrightness):
+		''' Returns the graph with data plotted.'''
+		self.SBcontoursf = self.SBgraph.contourf(\
+			SkyBrightness.AZgridi, SkyBrightness.ZDgridi, SkyBrightness.SBgridi, cmap=plt.cm.YlGnBu,levels=self.level_list)
+		self.SBcontours  = self.SBgraph.contour(\
+			SkyBrightness.AZgridi, SkyBrightness.ZDgridi, SkyBrightness.SBgridi,
+			colors='k',alpha=0.3,levels=self.coarse_level_list)
+		self.SBcontlabel = self.SBgraph.clabel(self.SBcontours,inline=True,fmt='%.1f',fontsize=10)
+		# Limit radius
+		self.SBgraph.set_ylim(0,75)
+	
+	def plot_labels(self,SkyBrightness,ImageInfo,BouguerFit):
+		''' Set the figure title and add extra information (annotation) '''
+		# Image title
+		self.SBgraph.text(0,90, unicode(ImageInfo.backgroundmap_title,'utf-8'),\
+			horizontalalignment='center',size='xx-large')
 		
-		_min_ = float(self.ContourLimits[0])
-		_max_ = float(self.ContourLimits[1])
+		# Image information
+		image_information = str(ImageInfo.date_string)+" UTC\n"+str(ImageInfo.latitude)+5*" "+\
+			str(ImageInfo.longitude)+"\n"+ImageInfo.used_filter+4*" "+\
+			"K="+str("%.3f" % float(BouguerFit.Regression.extinction))+"+-"+\
+			str("%.3f" % float(BouguerFit.Regression.error_extinction))+"\n"+\
+			"SB="+str("%.2f" % float(SkyBrightness.SBzenith))+"+-"+\
+			str("%.2f" % float(SkyBrightness.SBzenith_err))+" mag/arcsec2 (zenith)"
+	
+		self.SBgraph.text(5*np.pi/4,125,unicode(image_information,'utf-8'),fontsize='x-small')
+	
+	def define_contours(self,ImageInfo):
+		''' Calculate optimal contours for pyplot.contour and pyplot.contourf '''
+		
+		_min_ = float(ImageInfo.background_levels[ImageInfo.used_filter][0])
+		_max_ = float(ImageInfo.background_levels[ImageInfo.used_filter][1])
+		
 		sval = 0.1
-		
 		def create_ticks(_min_,_max_,sval):
 			return  np.arange(_min_,_max_+sval/10.,sval)
 		
 		self.level_list = create_ticks(_min_,_max_,0.1)
 		self.label_list = create_ticks(_min_,_max_,sval)
+		self.coarse_level_list = create_ticks(_min_,_max_,0.2)
 		
 		while len(self.label_list)>15:
 			sval = sval*2.
 			self.label_list = create_ticks(_min_,_max_,sval)
 		
-		if len(barra_marcas)<3: self.update_ticks=False
+		if len(self.level_list)<3: self.update_ticks=False
 		else: self.update_ticks=True
-
-		
-	def create_plot(self,onscreen=False,writefile=False):
-		'''
-		Interpolate and plot the Sky Brightness map
-		'''
-		print('SkyBrightnessGraph(): ploting data ...'),
-		try:
-			SBfigure = plt.figure(figsize=(8,8),dpi=100)
-			SBgraph  = SBfigure.add_subplot(111,projection='polar')
-			SBgraph.text(0,pi/2, unicode(self.Title,'utf-8'),\
-				horizontalalignment='center',size='xx-large')
-				
-			define_contours(self)
-			
-			# Contours
-			SBcontours = SBgraph.contourf(self.AZgridi,self.Radiali,self.SBgridi,\
-				cmap=cm.YlGnBu,levels=self.level_list)
-		
-			# Radial/azimuthal ticks and locators
-			radial_locator = [ (num+1)*pi/18 for num in xrange(7) ]
-			radial_label = ["$80$","$70$","$60$","$50$","$40$","$30$","$20$","$10$","$0$"]
-			theta_locator = [ 45*num for num in xrange(8)]
-			theta_label = ["$N$","$NE$","$E$","$SE$","$S$","$SW$","$W$","$NW$"]
-			SBgraph.set_rgrids(radial_locator,radial_label,size="large")
-			SBgraph.set_thetagrids(theta_locator,theta_label,size="large")
-			SBgraph.set_theta_direction(-1)
-			SBgraph.set_theta_offset(pi/2)
-			SBgraph.grid(linewidth=0.8)
-		
-			# Separation between colour bar and graph
-			subplots_adjust(right=1)
-			
-			# Color bar 
-			SBcolorbar = colorbar(SBcontours,orientation='vertical',shrink=0.85)
-			subplots_adjust(right=0.80)
-			SBcolorbar.set_ticks(self.label_list,update_ticks=self.update_ticks)
-			SBcolorbar.set_label("mag/arcsec2",rotation="vertical",size="large")
-
-			# Image information
-			image_information = str(self.ObsPyephem.date)+" UTC\n"+str(self.ObsPyephem.lat)+5*" "+\
-				str(self.ObsPyephem.lon)+"\n"+self.ImageFilter+4*" "+self.extinction_str+\
-				str("%.2f" % float(self.SBzenith))+"+-"+str("%.2f" % float(self.SBzenith_err))+\
-				"mag/arcsec2 (zenith)"
 	
-			SBgraph.text(5*pi/4,125*pi/180,unicode(image_information,'utf-8'),fontsize='x-small')
+	def ticks_and_locators(self):
+		''' Add ticks to the graph '''
+		radial_locator = np.arange(10,90+1,10)
+		radial_label = ["$80$","$70$","$60$","$50$","$40$","$30$","$20$","$10$","$0$"]
+		theta_locator = np.arange(0,360,45)
+		theta_label = ["$N$","$NE$","$E$","$SE$","$S$","$SW$","$W$","$NW$"]
+		self.SBgraph.set_rgrids(radial_locator,radial_label,size="large",color='k',alpha=0.75)
+		self.SBgraph.set_thetagrids(theta_locator,theta_label,size="large")
+		# rotate the graph (North up)
+		self.SBgraph.set_theta_direction(-1)
+		self.SBgraph.set_theta_offset(np.pi/2)
 	
-			# Show or save the graph
-			if onscreen == True:
-				show(figurafondocielo)
-			if writefile != False:
-				savefig(output_file_name(writefile,self.ObsPyephem.date,self.ImageFilter))
-			close(SBfigure); 
-		except:
-			print('Failed')
-			raise
-		else:
-			print('OK')
-
+	def color_bar(self):
+		''' Add the colorbar '''
+		# Separation between colour bar and graph
+		self.SBfigure.subplots_adjust(right=1)
+		# Color bar 
+		self.SBcolorbar = plt.colorbar(self.SBcontoursf,orientation='vertical',shrink=0.85)
+		self.SBfigure.subplots_adjust(right=0.80) # Restore separation
+		self.SBcolorbar.set_ticks(self.label_list,update_ticks=self.update_ticks)
+		self.SBcolorbar.set_label("mag/arcsec2",rotation="vertical",size="large")
+	
+	def show_map(self):
+		#plt.show(self.SBfigure)
+		self.SBfigure.savefig("/home/minaya/fondo_cielo_pyasb.png")
 		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
