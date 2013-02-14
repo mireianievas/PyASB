@@ -38,16 +38,17 @@ except:
 class SkyMap():
 	'''	SkyMap class '''
 	
-	def __init__(self,StarCatalog,ImageInfo,FitsImage):
+	def __init__(self,StarCatalog,ImageInfo,ImageCoordinates,FitsImage):
 		log_fits_data = np.log(FitsImage.fits_data+0.1)
 		valuemin = np.percentile(log_fits_data,10)
 		valuemax = np.percentile(log_fits_data,99)
 		stretched_fits_data = log_fits_data.clip(valuemin,valuemax)
 		self.create_skymap(StarCatalog,ImageInfo,stretched_fits_data)
-		self.draw_polar_axes(ImageInfo)
+		self.draw_polar_axes(ImageCoordinates,ImageInfo)
 		for Star in StarCatalog.StarList:
 			self.annotate_skymap(Star)
-		plt.show(self.skyimage)
+		#plt.show(self.skyimage)
+		self.skyfigure.savefig('/home/minaya/mapa_pyasb.png')
 	
 	def create_skymap(self,StarCatalog,ImageInfo,fits_data):
 		''' Create figure and self.skyimage subplot. '''
@@ -75,34 +76,43 @@ class SkyMap():
 			transform = self.skyimage.transAxes,backgroundcolor=(0,0,0,0.75))
 		self.skyimage.legend(('In catalog','Detected'),'upper right')
 		
-	def draw_polar_axes(self,ImageInfo):
-		''' Draws meridian and altitude isolines. '''
-		x = np.arange(ImageInfo.resolution[0])
-		y = np.arange(ImageInfo.resolution[1])
-		X,Y = np.meshgrid(x,y)
+	def draw_polar_axes(self,ImageCoordinates,ImageInfo):
+		''' Draws meridian and altitude isolines. '''		
+		# NOTE: It has an strange effect if we draw all azimuths. Matplotlib identifies the 360 to 0 degrees
+		# transition in azimuth and writes here all azimuth labels. The result is very ugly, so we use here
+		# a workaround with masks and manual placement of labels.
 		
-		def numpy_xy2horiz(xi,yi,ImageInfo):
-			''' Reimplementation with numpy arrays (fast on large arrays). 
-			    We need it as we will use a very large array'''
-			xi = xi - ImageInfo.resolution[0]/2-ImageInfo.delta_x
-			yi = yi - ImageInfo.resolution[1]/2+ImageInfo.delta_y
-			Rfactor = np.sqrt(xi**2 + yi**2)/ImageInfo.radial_factor
-			Rfactor[Rfactor>360./np.pi]=360./np.pi
-			altitude = (180.0/np.pi)*np.arcsin(1-0.5*(np.pi*Rfactor/180.0)**2)
-			azimuth  = (360+180-(ImageInfo.azimuth_zeropoint + 180.0*np.arctan2(yi,-xi)/pi))%360
-			return azimuth,altitude
+		masked_azimuth_map = np.ma.masked_where(np.array(ImageCoordinates.azimuth_map<5)+\
+			np.array(ImageCoordinates.azimuth_map>355),ImageCoordinates.azimuth_map)
+		masked_azimuth_map_only0 = np.ma.masked_where(np.array(ImageCoordinates.azimuth_map>5)*\
+			np.array(ImageCoordinates.azimuth_map<355),ImageCoordinates.azimuth_map)
 		
-		Zaz,Zalt = numpy_xy2horiz(X,Y,ImageInfo)
+		self.skyimage.contours_zaz0 = self.skyimage.contour(masked_azimuth_map_only0,\
+			[180],colors='k',alpha=0.2)
+		self.skyimage.contours_zaz  = \
+			self.skyimage.contour(masked_azimuth_map,np.arange(30,360,30),colors='k',alpha=0.2)
+		self.skyimage.contours_zalt = \
+			self.skyimage.contour(ImageCoordinates.altitude_map,np.arange(0,90,15),colors='k',alpha=0.2)
 		
-		# NOTE: It has an strange effect if we draw all azimuths. Matplotlib tries to 
-		# close all iso-azimuth contours and superimposes them on azimuth=0 segment, very ugly.
-		# Until I figure how to workaround this issue, just draw the meridian.
+		'''self.skyimage.clabels_zaz0  = \
+			self.skyimage.clabel(self.skyimage.contours_zaz0,inline=True,fmt='%d',fontsize=10)
+		self.skyimage.clabels_zaz  = \
+			self.skyimage.clabel(self.skyimage.contours_zaz,inline=True,fmt='%d',fontsize=10)'''
+		self.skyimage.clabels_zalt = \
+			self.skyimage.clabel(self.skyimage.contours_zalt,inline=True,fmt='%d',fontsize=10)
 		
-		self.skyimage.contours_zaz  = self.skyimage.contour(Zaz,np.array([0,180]),colors='k',alpha=0.2)
-		self.skyimage.contours_zalt = self.skyimage.contour(Zalt,np.arange(0,90,15),colors='k',alpha=0.2)
-		
-		self.skyimage.clabels_zaz  = self.skyimage.clabel(self.skyimage.contours_zaz,inline=True,fmt='%d',fontsize=10)
-		self.skyimage.clabels_zalt = self.skyimage.clabel(self.skyimage.contours_zalt,inline=True,fmt='%d',fontsize=10)
+		key_azimuths = {0: "N",90: "E", 180: "S", 270: "W"}
+		for each_azimuth in np.arange(0,360,30):
+			if each_azimuth in key_azimuths:
+				azimuth_label = str(key_azimuths[each_azimuth])
+			else:
+				azimuth_label = str(each_azimuth)
+			self.skyimage.annotate(\
+				azimuth_label,
+				xy=horiz2xy(each_azimuth,ImageInfo.min_altitude,ImageInfo),\
+				color='k',
+				alpha=0.2,
+				fontsize=10)
 		
 	def annotate_skymap(self,Star):
 		# Draw identified stars and measuring circ<les.

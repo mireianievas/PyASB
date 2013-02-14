@@ -12,6 +12,7 @@ ____________________________
 '''
 
 try:
+	import numpy as np
 	from math import pi,sin,cos,sqrt,atan2,asin
 	import ephem
 except:
@@ -29,6 +30,11 @@ __maintainer__ = "Miguel Nievas"
 __email__ = "miguelnr89[at]gmail[dot]com"
 __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
+
+''' 
+Standalone functions. 
+  To be used on single points
+'''
 
 def horiz2xy(azimuth,altitude,ImageInfo):
 	# Return X,Y position in the image from azimuth/altitude horizontal coord.
@@ -87,3 +93,26 @@ def calculate_airmass(altitude):
 	# zdist in degrees
 	return 1/sin((altitude+244./(165+47*altitude**1.1))*pi/180.)
 
+'''
+Vectorial functions.
+  Generate a class that contains a map of coordinates
+  that match the Image pixels
+'''
+
+class ImageCoordinates():
+	def __init__(self,ImageInfo):
+		x = np.arange(ImageInfo.resolution[0])
+		y = np.arange(ImageInfo.resolution[1])
+		self.X,self.Y = np.meshgrid(x,y)
+		self.calculate_altaz(ImageInfo)
+	
+	def calculate_altaz(self,ImageInfo):
+		''' Reimplementation with numpy arrays (fast on large arrays). 
+			We need it as we will use a very large array'''
+		Xi = self.X - ImageInfo.resolution[0]/2-ImageInfo.delta_x
+		Yi = self.Y - ImageInfo.resolution[1]/2+ImageInfo.delta_y
+		Rfactor = np.sqrt(Xi**2 + Yi**2)/ImageInfo.radial_factor
+		Rfactor[Rfactor>360./np.pi]=360./np.pi
+		self.altitude_map = (180.0/np.pi)*np.arcsin(1-0.5*(np.pi*Rfactor/180.0)**2)
+		self.azimuth_map  = (360+180-(ImageInfo.azimuth_zeropoint + 180.0*np.arctan2(Yi,-Xi)/pi))%360
+	

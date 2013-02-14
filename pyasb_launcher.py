@@ -42,6 +42,7 @@ config_filename  = 'pyasb_config.cfg'
 
 class InstrumentCalibration():
 	def __init__(self,InputFile,BouguerFile=None):
+		PlatformHelp_ = PlatformHelp()
 		#ConfigOptions = ConfigOptions(config_name)
 		FitsImage_ = FitsImage(InputFile)
 		ImageInfo_ = ImageInfo(FitsImage_.fits_Header,config_filename)
@@ -57,20 +58,26 @@ class InstrumentCalibration():
 			print('Cannot reduce science frame')
 		
 		ObsPyephem_ = pyephem_setup(ImageInfo_)
-		PlatformHelp_ = PlatformHelp()
+		
+		ImageCoordinates_ = ImageCoordinates(ImageInfo_)
 		
 		ImageInfo_.catalog_filename = 'ducati_catalog.tsv'
 		ImageInfo_.skymap_file = "test_map.png"
 		StarCatalog_ = StarCatalog(FitsImage_,ImageInfo_,ObsPyephem_)
 		
-		print('Star Map plot ...')
-		SkyMap_ = SkyMap(StarCatalog_,ImageInfo_,FitsImage_)
+		print('Star Map plot ...'),
+		SkyMap_ = SkyMap(StarCatalog_,ImageInfo_,ImageCoordinates_,FitsImage_)
+		print('OK')
 		
+		print('Calculating Instrument zeropoint and extinction ...'),
 		BouguerFit_ = BouguerFit(ImageInfo_,StarCatalog_ )
 		BouguerFit_.bouguer_plot(ImageInfo_,ObsPyephem_)
+		print('OK')
 		
-		SkyBrightness_ = SkyBrightness(FitsImage_.fits_Data,ImageInfo_,BouguerFit_.Regression_)
-		SkyBrightnessGraph_ = SkyBrightnessGraph(SkyBrightness_,ImageInfo_,ObsPyephem_,BouguerFit_.Regression_)
+		print('Generating Sky Brightness Map ...'),
+		SkyBrightness_ = SkyBrightness(FitsImage_,ImageInfo_,ImageCoordinates_,BouguerFit_)
+		SkyBrightnessGraph_ = SkyBrightnessGraph(SkyBrightness_,ImageInfo_,BouguerFit_)
+		print('OK')
 		
 		
 if __name__ == '__main__':

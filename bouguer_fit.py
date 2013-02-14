@@ -40,7 +40,6 @@ except:
 
 class BouguerFit():
 	def __init__(self,ImageInfo,PhotometricCatalog):
-		print('Fitting Bouguer Law to derive extinction and zeropoint ...')
 		self.bouguer_fit(ImageInfo,PhotometricCatalog)
 		if DEBUG==True:
 			print(len(StarCatalog.StarList))
@@ -71,9 +70,11 @@ class BouguerFit():
 		xfit = np.linspace(1,astrometry.calculate_airmass(ImageInfo.min_altitude),10)
 		yfit = np.polyval([self.Regression.mean_slope,self.Regression.mean_zeropoint],xfit)
 	
-		bouguerfigure = mpl.figure(figsize=(8,6),dpi=100)
+		bouguerfigure = mpl.figure(figsize=(8,6))
 		bouguerplot = bouguerfigure.add_subplot(111)
-		bouguerplot.set_title('Bouguer extinction law fit',size="xx-large")
+		bouguerplot.set_title('Bouguer extinction law fit\n',size="xx-large")
+		bouguerplot.set_xlabel('Airmass')
+		bouguerplot.set_ylabel(r'$m_0+2.5\log_{10}(F)$',size="large")
 		bouguerplot.errorbar(self.xdata, self.ydata, yerr=self.yerr, fmt='*', ecolor='g')
 		bouguerplot.plot(xfit,yfit,'r-')
 		
@@ -81,16 +82,19 @@ class BouguerFit():
 			plot_infotext = \
 				ImageInfo.date_string+"\n"+str(ObsPyephem.lat)+5*" "+str(ObsPyephem.lon)+"\n"+\
 				ImageInfo.used_filter+4*" "+"Rcorr="+str("%.3f"%float(self.Regression.kendall_tau))+"\n"+\
-				"C="+str("%.3f"%float(self.Regression.mean_zeropoint))+"+/-"+str("%.3f"%float(self.Regression.error_zeropoint))+"\n"+\
-				"K="+str("%.3f"%float(self.Regression.extinction))+"+/-"+str("%.3f"%float(self.Regression.error_slope))+"\n"+\
-				str("%.0f"%(self.Regression.Nstars_rel))+"% of "+str(self.Regression.Nstars_initial)+" photometric measures shown"
-			bouguerplot.text(0.1,0.1,plot_infotext,fontsize='x-small',transform = bouguerplot.transAxes)
+				"C="+str("%.3f"%float(self.Regression.mean_zeropoint))+\
+				"+/-"+str("%.3f"%float(self.Regression.error_zeropoint))+"\n"+\
+				"K="+str("%.3f"%float(self.Regression.extinction))+"+/-"\
+				+str("%.3f"%float(self.Regression.error_slope))+"\n"+\
+				str("%.0f"%(self.Regression.Nstars_rel))+"% of "+\
+				str(self.Regression.Nstars_initial)+" photometric measures shown"
+			bouguerplot.text(0.05,0.05,plot_infotext,fontsize='x-small',transform = bouguerplot.transAxes)
 		except:
 			raise
 		
 		if ImageInfo.bouguerplot_file!=False:
 			# Show or save the bouguer plot
-			bouguerfigure.savefig("/home/minaya/prueba.png")
+			bouguerfigure.savefig("/home/minaya/bouguer_fit_pyasb.png")
 			#show_or_save_bouguerplot(bouguerfigure,ImageInfo,ObsPyephem)
 
 class TheilSenRegression():
@@ -193,6 +197,7 @@ class TheilSenRegression():
 		
 		self.error_slope = stats.t.ppf(0.975,self.Nstars_final-2) * math.sqrt(sigma2_slope)
 		self.error_zeropoint = stats.t.ppf(0.975,self.Nstars_final-2) * math.sqrt(sigma2_int)
+		self.error_extinction = self.error_slope
 	
 	def calculate_kendall_tau(self):
 		self.kendall_tau = \
