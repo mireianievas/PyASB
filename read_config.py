@@ -64,10 +64,6 @@ class ConfigOptions():
 			if len(raw_config[line].split("=")) == 2:
 				if raw_config[line][0]!="#":
 					self.add_param_value(raw_config[line])
-	
-	def __del__(self):
-		if DEBUG==True: print('Deleting config object')
-		del(self)
 
 # Setup Pyephem Observatory
 def pyephem_setup(ImageInfo):

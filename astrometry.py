@@ -50,7 +50,7 @@ def xy2horiz(X,Y,ImageInfo):
 	# Return horizontal coordinates from X,Y position in the image.
 	# azimuth and altitude are in degrees.
 	X = X - ImageInfo.resolution[0]/2-ImageInfo.delta_x
-	Y = Y - ImageInfo.resolution[1]/2+ImageInfo.delta_y
+	Y = Y - ImageInfo.resolution[1]/2-ImageInfo.delta_y
 	Rfactor = sqrt(X**2 + Y**2)/ImageInfo.radial_factor
 	altitude = (180.0/pi)*asin(1-0.5*(pi*Rfactor/180.0)**2)
 	azimuth  = 360+180-(ImageInfo.azimuth_zeropoint + 180.0*atan2(Y,-X)/pi)%360
@@ -62,9 +62,7 @@ def xy2horiz(X,Y,ImageInfo):
 
 def zenith_position(ImageInfo):
 	# Return X,Y position of zenith in the image.
-	X = ImageInfo.resolution[0]/2+ImageInfo.delta_x
-	Y = ImageInfo.resolution[1]/2+ImageInfo.delta_y
-	return X,Y
+	return horiz2xy(0,90,ImageInfo)
 
 def optical_axis(ImageInfo):
 	# Return horizontal coordinates of the optical axis
@@ -103,16 +101,16 @@ class ImageCoordinates():
 	def __init__(self,ImageInfo):
 		x = np.arange(ImageInfo.resolution[0])
 		y = np.arange(ImageInfo.resolution[1])
-		self.X,self.Y = np.meshgrid(x,y)
-		self.calculate_altaz(ImageInfo)
+		X,Y = np.meshgrid(x,y)
+		self.calculate_altaz(ImageInfo,X,Y)
 	
-	def calculate_altaz(self,ImageInfo):
+	def calculate_altaz(self,ImageInfo,X,Y):
 		''' Reimplementation with numpy arrays (fast on large arrays). 
 			We need it as we will use a very large array'''
-		Xi = self.X - ImageInfo.resolution[0]/2-ImageInfo.delta_x
-		Yi = self.Y - ImageInfo.resolution[1]/2+ImageInfo.delta_y
+		Xi = X - ImageInfo.resolution[0]/2-ImageInfo.delta_x
+		Yi = Y - ImageInfo.resolution[1]/2-ImageInfo.delta_y
 		Rfactor = np.sqrt(Xi**2 + Yi**2)/ImageInfo.radial_factor
 		Rfactor[Rfactor>360./np.pi]=360./np.pi
-		self.altitude_map = (180.0/np.pi)*np.arcsin(1-0.5*(np.pi*Rfactor/180.0)**2)
-		self.azimuth_map  = (360+180-(ImageInfo.azimuth_zeropoint + 180.0*np.arctan2(Yi,-Xi)/pi))%360
+		self.altitude_map = np.array((180.0/np.pi)*np.arcsin(1-0.5*(np.pi*Rfactor/180.0)**2),dtype='float32')
+		self.azimuth_map  = np.array((360+180-(ImageInfo.azimuth_zeropoint + 180.0*np.arctan2(Yi,-Xi)/pi))%360,dtype='float32')
 	

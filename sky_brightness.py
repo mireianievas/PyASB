@@ -119,6 +119,7 @@ class SkyBrightnessGraph():
 		self.plot_data(SkyBrightness)
 		self.color_bar()
 		self.show_map()
+		plt.close('all')
 	
 	def create_plot(self):
 		''' Create the figure (empty) with matplotlib '''

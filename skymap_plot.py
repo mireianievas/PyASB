@@ -49,6 +49,7 @@ class SkyMap():
 			self.annotate_skymap(Star)
 		#plt.show(self.skyimage)
 		self.skyfigure.savefig('/home/minaya/mapa_pyasb.png')
+		plt.close('all')
 	
 	def create_skymap(self,StarCatalog,ImageInfo,fits_data):
 		''' Create figure and self.skyimage subplot. '''
@@ -78,31 +79,20 @@ class SkyMap():
 		
 	def draw_polar_axes(self,ImageCoordinates,ImageInfo):
 		''' Draws meridian and altitude isolines. '''		
-		# NOTE: It has an strange effect if we draw all azimuths. Matplotlib identifies the 360 to 0 degrees
-		# transition in azimuth and writes here all azimuth labels. The result is very ugly, so we use here
-		# a workaround with masks and manual placement of labels.
-		
-		masked_azimuth_map = np.ma.masked_where(np.array(ImageCoordinates.azimuth_map<5)+\
-			np.array(ImageCoordinates.azimuth_map>355),ImageCoordinates.azimuth_map)
-		masked_azimuth_map_only0 = np.ma.masked_where(np.array(ImageCoordinates.azimuth_map>5)*\
-			np.array(ImageCoordinates.azimuth_map<355),ImageCoordinates.azimuth_map)
-		
-		self.skyimage.contours_zaz0 = self.skyimage.contour(masked_azimuth_map_only0,\
-			[180],colors='k',alpha=0.2)
-		self.skyimage.contours_zaz  = \
-			self.skyimage.contour(masked_azimuth_map,np.arange(30,360,30),colors='k',alpha=0.2)
 		self.skyimage.contours_zalt = \
 			self.skyimage.contour(ImageCoordinates.altitude_map,np.arange(0,90,15),colors='k',alpha=0.2)
-		
-		'''self.skyimage.clabels_zaz0  = \
-			self.skyimage.clabel(self.skyimage.contours_zaz0,inline=True,fmt='%d',fontsize=10)
-		self.skyimage.clabels_zaz  = \
-			self.skyimage.clabel(self.skyimage.contours_zaz,inline=True,fmt='%d',fontsize=10)'''
-		self.skyimage.clabels_zalt = \
-			self.skyimage.clabel(self.skyimage.contours_zalt,inline=True,fmt='%d',fontsize=10)
+		self.skyimage.clabel(self.skyimage.contours_zalt,inline=True,fmt='%d',fontsize=10)
 		
 		key_azimuths = {0: "N",90: "E", 180: "S", 270: "W"}
+		zenith_xy = zenith_position(ImageInfo)
 		for each_azimuth in np.arange(0,360,30):
+			coord_azimuth_0 = horiz2xy(each_azimuth,0,ImageInfo)
+			self.skyimage.plot(\
+				[zenith_xy[0],coord_azimuth_0[0]],
+				[zenith_xy[1],coord_azimuth_0[1]],
+				color='k',
+				alpha=0.2,)
+			
 			if each_azimuth in key_azimuths:
 				azimuth_label = str(key_azimuths[each_azimuth])
 			else:
