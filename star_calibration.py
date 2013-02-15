@@ -133,6 +133,10 @@ class Star():
 				if DEBUG==True:
 					print(self.name + ' Error calculating bouguer variables')
 		
+		if DEBUG==True:
+			print('Clearing Object')
+		self.__clear__()
+		
 		if self.destroy==False:
 			if DEBUG==True:
 				print('DONE')
@@ -285,7 +289,6 @@ class Star():
 			# False otherwise
 			return (Xi)**2 + (Yi)**2 <= reference**2
 		
-		
 		try:
 			self.pixels1 = [self.fits_region_complete[y][x] \
 				for y in xrange(len(self.fits_region_complete))\
@@ -308,9 +311,9 @@ class Star():
 			self.skyflux = 2.5*np.median(self.pixels3)-1.5*np.mean(self.pixels3)
 			self.skyflux_err = np.std(self.pixels3)
 			# Sky background + Star flux
-			self.totalflux = np.sum(self.pixels1)
+			totalflux = np.sum(self.pixels1)
 			# Only star flux
-			self.starflux = self.totalflux - len(self.pixels1)*self.skyflux
+			self.starflux = totalflux - len(self.pixels1)*self.skyflux
 			self.starflux_err = math.sqrt(len(self.pixels1))*self.skyflux_err
 			
 		except:
@@ -341,12 +344,12 @@ class Star():
 			exponent = 2 # Values > 1 intensify the convergence of the method.
 			xweight = np.array([range(1,len(self.fits_region_star[0])+1)]*len(self.fits_region_star))
 			yweight = np.array([range(1,len(self.fits_region_star)+1)]*len(self.fits_region_star[0])).transpose()
-			self.xcentroid = np.sum(xweight*np.power(self.fits_region_star-self.skyflux,exponent))\
+			xcentroid = np.sum(xweight*np.power(self.fits_region_star-self.skyflux,exponent))\
 				/np.sum(np.power(self.fits_region_star-self.skyflux,exponent))
-			self.ycentroid = np.sum(yweight*np.power(self.fits_region_star-self.skyflux,exponent))\
+			ycentroid = np.sum(yweight*np.power(self.fits_region_star-self.skyflux,exponent))\
 				/np.sum(np.power(self.fits_region_star-self.skyflux,exponent))
-			self.Xcoord += self.xcentroid - len(self.fits_region_star[0])/2
-			self.Ycoord += self.ycentroid - len(self.fits_region_star)/2
+			self.Xcoord += xcentroid - len(self.fits_region_star[0])/2
+			self.Ycoord += ycentroid - len(self.fits_region_star)/2
 		except:
 			self.destroy=True
 	
@@ -378,12 +381,22 @@ class Star():
 	def photometry_bouguervar(self,ImageInfo):
 		# Calculate parameters used in bouguer law fit
 		try:
-			self._25logF      = 2.5*math.log10(self.starflux/ImageInfo.exposure)
-			self._25logF_unc  = (2.5/math.log(10))*self.starflux_err/self.starflux
-			self.m25logF     = self.FilterMag+self._25logF
-			self.m25logF_unc = self._25logF_unc
+			_25logF      = 2.5*math.log10(self.starflux/ImageInfo.exposure)
+			_25logF_unc  = (2.5/math.log(10))*self.starflux_err/self.starflux
+			self.m25logF     = self.FilterMag+_25logF
+			self.m25logF_unc = _25logF_unc
 		except:
 			self.destroy=True
+	
+	def __clear__(self):
+		backup_attributes = [\
+			"destroy","name","FilterMag","Color",\
+			"RA1950","DEC1950","azimuth","altit_real","airmass","Xcoord","Ycoord",\
+			"R1","R2","R3","starflux","starflux_err","m25logF","m25logF_unc"]
+		for atribute in list(self.__dict__):
+			if atribute[0]!="_" and atribute not in backup_attributes:
+				del vars(self)[atribute]
+	
 
 class StarCatalog():
 	''' This class processes the catalog.
@@ -430,6 +443,7 @@ class StarCatalog():
 				pass
 			else:
 				self.StarList_woPhot.append(PhotometricStar)
+		
 		print(" - Total stars: "+str(len(self.StarList_woPhot)))
 		print(" - With photometry: " +str(len(self.StarList)))
 		

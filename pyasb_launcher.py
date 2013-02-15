@@ -25,6 +25,7 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 try:
 	#from read_config import *
+	import sys
 	from program_help import *
 	from astrometry import *
 	from star_calibration import *
@@ -41,6 +42,7 @@ except:
 config_filename  = 'pyasb_config.cfg'
 
 class InstrumentCalibration():
+	@profile
 	def __init__(self,InputFile,BouguerFile=None):
 		PlatformHelp_ = PlatformHelp()
 		#ConfigOptions = ConfigOptions(config_name)
@@ -71,7 +73,7 @@ class InstrumentCalibration():
 		
 		print('Calculating Instrument zeropoint and extinction ...'),
 		BouguerFit_ = BouguerFit(ImageInfo_,StarCatalog_ )
-		BouguerFit_.bouguer_plot(ImageInfo_,ObsPyephem_)
+		BouguerFit_.bouguer_plot(ImageInfo_)
 		print('OK')
 		
 		print('Generating Sky Brightness Map ...'),
@@ -79,7 +81,7 @@ class InstrumentCalibration():
 		SkyBrightnessGraph_ = SkyBrightnessGraph(SkyBrightness_,ImageInfo_,BouguerFit_)
 		print('OK')
 		
-		
+
 if __name__ == '__main__':
 	bouguerplot_file = "~/mibouguerplot.png"
 	# Calibrate instrument with image

@@ -85,6 +85,7 @@ class ImageTest():
 class FitsImage(ImageTest):
 	def __init__(self,input_file):
 		self.load_science(input_file)
+		self.__clear__()
 		
 	def load_science(self,input_file):
 		print('Loading ScienceFrame ...'),
@@ -172,9 +173,15 @@ class FitsImage(ImageTest):
 		try: self.fits_data = (self.fits_data-self.SyntDark_Data)/self.MasterFlat_Data
 		except: raise
 		else: print('OK')
+	
+	def __clear__(self):
+		backup_attributes = [\
+			"fits_data","fits_Header","fits_data_notcalibrated"]
 		
-	def __del__(self):
-		del(self)
+		for atribute in list(self.__dict__):
+			if atribute[0]!="_" and atribute not in backup_attributes:
+				del vars(self)[atribute]
+	
 
 class ImageInfo(ImageTest,ConfigOptions):
 	'''
@@ -256,7 +263,4 @@ class ImageInfo(ImageTest,ConfigOptions):
 						self.flatfield[filter_name] = option[1]
 						if "Johnson_"+filters[the_filter] == self.used_filter:
 							self.sel_flatfield = self.flatfield[filter_name]
-
-	def __del__(self):
-		del(self)
 		

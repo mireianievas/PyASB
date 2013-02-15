@@ -27,7 +27,7 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 
 try:
-	import matplotlib.pyplot as mpl
+	import matplotlib.pyplot as plt
 	import matplotlib.colors as mpc
 	import matplotlib.patches as mpp
 	import scipy.stats as stats
@@ -64,13 +64,13 @@ class BouguerFit():
 			except:
 				raise
 	
-	def bouguer_plot(self,ImageInfo,ObsPyephem):
+	def bouguer_plot(self,ImageInfo):
 		''' Plot photometric data from the bouguer fit '''
 	
 		xfit = np.linspace(1,astrometry.calculate_airmass(ImageInfo.min_altitude),10)
 		yfit = np.polyval([self.Regression.mean_slope,self.Regression.mean_zeropoint],xfit)
 	
-		bouguerfigure = mpl.figure(figsize=(8,6))
+		bouguerfigure = plt.figure(figsize=(8,6))
 		bouguerplot = bouguerfigure.add_subplot(111)
 		bouguerplot.set_title('Bouguer extinction law fit\n',size="xx-large")
 		bouguerplot.set_xlabel('Airmass')
@@ -80,7 +80,7 @@ class BouguerFit():
 		
 		try:
 			plot_infotext = \
-				ImageInfo.date_string+"\n"+str(ObsPyephem.lat)+5*" "+str(ObsPyephem.lon)+"\n"+\
+				ImageInfo.date_string+"\n"+str(ImageInfo.latitude)+5*" "+str(ImageInfo.longitude)+"\n"+\
 				ImageInfo.used_filter+4*" "+"Rcorr="+str("%.3f"%float(self.Regression.kendall_tau))+"\n"+\
 				"C="+str("%.3f"%float(self.Regression.mean_zeropoint))+\
 				"+/-"+str("%.3f"%float(self.Regression.error_zeropoint))+"\n"+\
@@ -96,6 +96,7 @@ class BouguerFit():
 			# Show or save the bouguer plot
 			bouguerfigure.savefig("/home/minaya/bouguer_fit_pyasb.png")
 			#show_or_save_bouguerplot(bouguerfigure,ImageInfo,ObsPyephem)
+		plt.close('all')
 
 class TheilSenRegression():
 	# Robust Theil Sen estimator, instead of the classic least-squares.
