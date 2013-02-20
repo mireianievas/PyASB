@@ -24,38 +24,46 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 
 try:
+	import sys
 	from astrometry import *
 	import numpy as np
+	import math
 	import matplotlib.pyplot as plt
 	import matplotlib.colors as mpc
 	import matplotlib.patches as mpp
 	import matplotlib as mpl
 except:
-	print 'One or more modules missing: matplotlib'
+	print(str(sys.argv[0]) + ': One or more modules missing: matplotlib')
 	raise SystemExit
 
-
+@profile
 class SkyMap():
 	'''	SkyMap class '''
 	
-	def __init__(self,StarCatalog,ImageInfo,ImageCoordinates,FitsImage):
-		log_fits_data = np.log(FitsImage.fits_data+0.1)
-		valuemin = np.percentile(log_fits_data,10)
-		valuemax = np.percentile(log_fits_data,99)
-		stretched_fits_data = log_fits_data.clip(valuemin,valuemax)
-		self.create_skymap(StarCatalog,ImageInfo,stretched_fits_data)
-		self.draw_polar_axes(ImageCoordinates,ImageInfo)
+	def __init__(self,StarCatalog,ImageInfo,FitsImage):
+		stretched_fits_data = self.stretch_logdata(FitsImage.fits_data,10,99)
+		self.define_skymap();
+		self.draw_skymap_data(StarCatalog,ImageInfo,stretched_fits_data)
+		self.draw_polar_axes(ImageInfo)
 		for Star in StarCatalog.StarList:
 			self.annotate_skymap(Star)
 		#plt.show(self.skyimage)
-		self.skyfigure.savefig('/home/minaya/mapa_pyasb.png')
-		plt.close('all')
+		self.show_figure(ImageInfo)
 	
-	def create_skymap(self,StarCatalog,ImageInfo,fits_data):
+	def stretch_logdata(self,fits_data,pmin,pmax):
+		log_fits_data = np.log(fits_data-np.min(fits_data)+1,dtype="float32")
+		valuemin = np.percentile(log_fits_data,pmin)
+		valuemax = np.percentile(log_fits_data,pmax)
+		stretched_fits_data = log_fits_data.clip(valuemin,valuemax)
+		return stretched_fits_data
+	
+	def define_skymap(self):
 		''' Create figure and self.skyimage subplot. '''
 		self.skyfigure = plt.figure(figsize=(10,10))
 		self.skyimage  = self.skyfigure.add_subplot(111)
-		
+	
+	def draw_skymap_data(self,StarCatalog,ImageInfo,fits_data):
+		''' Draw identified stars with image as background'''
 		xpoints_catalog = [Star.Xcoord for Star in StarCatalog.StarList_woPhot]
 		ypoints_catalog = [Star.Ycoord for Star in StarCatalog.StarList_woPhot]
 		
@@ -76,15 +84,28 @@ class SkyMap():
 		self.skyimage.text(0.005,0.005,information,fontsize='small',color='white',\
 			transform = self.skyimage.transAxes,backgroundcolor=(0,0,0,0.75))
 		self.skyimage.legend(('In catalog','Detected'),'upper right')
+	
+	def draw_polar_axes(self,ImageInfo):
+		''' Draws meridian and altitude isolines. '''
 		
-	def draw_polar_axes(self,ImageCoordinates,ImageInfo):
-		''' Draws meridian and altitude isolines. '''		
-		self.skyimage.contours_zalt = \
-			self.skyimage.contour(ImageCoordinates.altitude_map,np.arange(0,90,15),colors='k',alpha=0.2)
-		self.skyimage.clabel(self.skyimage.contours_zalt,inline=True,fmt='%d',fontsize=10)
+		zenith_xy = zenith_position(ImageInfo)
+		
+		for each_altitude in np.arange(0,90,15):
+			coord_altitude_0 = horiz2xy(0,each_altitude,ImageInfo)
+			radius = math.sqrt(\
+				(coord_altitude_0[0]-zenith_xy[0])**2 +\
+				(coord_altitude_0[1]-zenith_xy[1])**2)
+			self.skyimage.add_patch(\
+				mpp.Circle((zenith_xy[0],zenith_xy[1]),radius,
+				facecolor='k',fill=False, alpha=0.2,label='_nolegend_'))
+			self.skyimage.annotate(\
+				str(each_altitude),
+				xy=(radius+zenith_xy[0],zenith_xy[1]),
+				alpha=0.2,
+				fontsize=10)
 		
 		key_azimuths = {0: "N",90: "E", 180: "S", 270: "W"}
-		zenith_xy = zenith_position(ImageInfo)
+		
 		for each_azimuth in np.arange(0,360,30):
 			coord_azimuth_0 = horiz2xy(each_azimuth,0,ImageInfo)
 			self.skyimage.plot(\
@@ -99,7 +120,7 @@ class SkyMap():
 				azimuth_label = str(each_azimuth)
 			self.skyimage.annotate(\
 				azimuth_label,
-				xy=horiz2xy(each_azimuth,ImageInfo.min_altitude,ImageInfo),\
+				xy=horiz2xy(each_azimuth,ImageInfo.min_altitude,ImageInfo),
 				color='k',
 				alpha=0.2,
 				fontsize=10)
@@ -118,7 +139,20 @@ class SkyMap():
 			textcoords='offset points',fontsize=8)
 		self.skyimage.annotate(Star.FilterMag,xy=(Star.Xcoord,Star.Ycoord), xycoords='data',xytext=(0,-10),\
 			textcoords='offset points',fontsize=8)
+			
+	def show_figure(self,ImageInfo):
+		def skymap_filename(ImageInfo):
+			filename = ImageInfo.skymap_path +\
+				"/Skymap_"+ImageInfo.obs_name+"_"+ImageInfo.fits_date+".png"
+			return(filename)
+		
+		plt.savefig(skymap_filename(ImageInfo),bbox_inches='tight')
+		plt.close('all')
+		
 	
+	
+	
+	'''
 	def complete_file_name(self):
 		# Add observatory name, date and time
 		filenamesplit = self.ImageInfo.skymap_file.split(".")
@@ -150,4 +184,4 @@ class SkyMap():
 		except: pass
 		
 		return basename+"."+imformat
-	
+	'''

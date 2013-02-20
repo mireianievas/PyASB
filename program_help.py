@@ -22,6 +22,12 @@ __maintainer__ = "Miguel Nievas"
 __email__ = "miguelnr89[at]gmail[dot]com"
 __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
+try:
+	import sys
+except:
+	print(str(sys.argv[0])+': One or more modules missing: sys')
+	raise SystemExit
+
 class PlatformHelp():
 	def __init__(self):
 		self.make_title()
@@ -47,26 +53,26 @@ class PlatformHelp():
 			'-h: print this help message\n\n'+\
 			'-i input_allsky_image: \n'+\
 			'  All Sky image you want to be analyzed\n\n'+\
-			'-f [year,month,day]:\n'+\
+			'-d [year,month,day]:\n'+\
 			'  Date to be analyzed (AstMon-UCM only)\n'+\
 			'  month and day are optional\n\n'+\
-			'-om output_map_image:\n'+\
+			'-om output_map_image path:\n'+\
 			'  Output star map image, full or relative path\n'+\
 			'  if no output file, show the map on screen\n\n'+\
-			'-ot output_photometric_table:\n'+\
+			'-ot output_photometric_table path:\n'+\
 			'  Output photometric table full or relative path\n'+\
 			'  if no output file, show the table on screen\n\n'+\
-			'-or output_results_summary:\n'+\
+			'-or output_results_summary path:\n'+\
 			'  Summary of analysis, fit parameters and zenith SB\n'+\
 			'  full or relative path. If no output file, \n'+\
 			'  show the table on screen\n\n'+\
-			'-ob output_bouguerfit_graph:\n'+\
+			'-ob output_bouguerfit_graph path:\n'+\
 			'  Output bouguer-fit graph, full or relative path.\n'+\
 			'  If no output file, show the graph on screen\n\n'+\
-			'-os output_skybrightness_graph:\n'+\
+			'-os output_skybrightness_graph path:\n'+\
 			'  Output Sky Brightness graph, full or relative path\n'+\
 			'  if no output file, show the graph on screen\n\n'+\
-			'-ost output_skybrightness_table:\n'+\
+			'-ost output_skybrightness_table path:\n'+\
 			'  Output Sky Brightness table, full or relative path\n'+\
 			'  if no output file, show the graph on screen\n\n'
 	

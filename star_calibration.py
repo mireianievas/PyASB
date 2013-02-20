@@ -17,12 +17,13 @@ ____________________________
 DEBUG = False
 
 try:
+	import sys
 	import ephem
 	import math
 	from astrometry import *
 	from skymap_plot import *
 except:
-	print 'One or more modules missing: pyephem,math,astrometry'
+	print(str(sys.argv[0]) + ': One or more modules missing: pyephem,math,astrometry')
 	raise SystemExit
 
 __author__ = "Miguel Nievas"

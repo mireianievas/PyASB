@@ -26,6 +26,7 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 
 try:
+	import sys
 	import numpy as np
 	import scipy.interpolate as sint
 	import matplotlib as mpl
@@ -33,8 +34,9 @@ try:
 	import matplotlib.colors as mpc
 	import matplotlib.patches as mpp
 except:
-	print('One or more modules missing: numpy, matplotlib')
+	print(str(sys.argv[0]) + ': One or more modules missing: sys, numpy, matplotlib')
 	raise SystemExit
+
 
 class SkyBrightness():
 	'''
@@ -108,8 +110,9 @@ class SkyBrightness():
 		# Measure Sky Brightness at zenith
 		self.SBzenith = np.median(self.SBgrid[self.ZDgrid==0])
 		self.SBzenith_err = np.max(self.SBgrid_errors[self.ZDgrid==0])
-		
 
+
+@profile
 class SkyBrightnessGraph():
 	def __init__(self,SkyBrightness,ImageInfo,BouguerFit):
 		self.create_plot()
@@ -118,8 +121,7 @@ class SkyBrightnessGraph():
 		self.ticks_and_locators()
 		self.plot_data(SkyBrightness)
 		self.color_bar()
-		self.show_map()
-		plt.close('all')
+		self.show_map(ImageInfo)
 	
 	def create_plot(self):
 		''' Create the figure (empty) with matplotlib '''
@@ -196,7 +198,13 @@ class SkyBrightnessGraph():
 		self.SBcolorbar.set_ticks(self.label_list,update_ticks=self.update_ticks)
 		self.SBcolorbar.set_label("mag/arcsec2",rotation="vertical",size="large")
 	
-	def show_map(self):
+	def show_map(self,ImageInfo):
+		def skybrightness_filename(ImageInfo):
+			filename = ImageInfo.skybrightness_path +\
+				"/SkyBrightnessMap_"+ImageInfo.obs_name+"_"+ImageInfo.fits_date+".png"
+			return(filename)
+		
 		#plt.show(self.SBfigure)
-		self.SBfigure.savefig("/home/minaya/fondo_cielo_pyasb.png")
+		plt.savefig(skybrightness_filename(ImageInfo),bbox_inches='tight')
+		plt.close('all')
 		

@@ -27,6 +27,7 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 
 try:
+	import sys
 	import matplotlib.pyplot as plt
 	import matplotlib.colors as mpc
 	import matplotlib.patches as mpp
@@ -35,7 +36,7 @@ try:
 	import numpy as np
 	import astrometry
 except:
-	print 'One or more modules missing: numpy,scipy,math,matplotlib,astrometry'
+	print(str(sys.argv[0])+': One or more modules missing: numpy,scipy,math,matplotlib,astrometry')
 	raise SystemExit
 
 class BouguerFit():
@@ -92,10 +93,14 @@ class BouguerFit():
 		except:
 			raise
 		
-		if ImageInfo.bouguerplot_file!=False:
-			# Show or save the bouguer plot
-			bouguerfigure.savefig("/home/minaya/bouguer_fit_pyasb.png")
-			#show_or_save_bouguerplot(bouguerfigure,ImageInfo,ObsPyephem)
+		def bouguer_filename(ImageInfo):
+			filename = ImageInfo.bouguerfit_path +\
+				"/BouguerFit_"+ImageInfo.obs_name+"_"+ImageInfo.fits_date+".png"
+			return(filename)
+		
+		# Show or save the bouguer plot
+		plt.savefig(bouguer_filename(ImageInfo),bbox_inches='tight')
+		#show_or_save_bouguerplot(bouguerfigure,ImageInfo,ObsPyephem)
 		plt.close('all')
 
 class TheilSenRegression():

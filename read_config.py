@@ -13,13 +13,6 @@ ____________________________
 
 DEBUG = True;
 
-try:
-	import ephem
-	import math
-except:
-	print 'One or more modules missing: pyephem,math'
-	raise SystemExit
-
 __author__ = "Miguel Nievas"
 __copyright__ = "Copyright 2012, PyASB project"
 __credits__ = ["Miguel Nievas"]
@@ -31,6 +24,13 @@ __maintainer__ = "Miguel Nievas"
 __email__ = "miguelnr89[at]gmail[dot]com"
 __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
+try:
+	import sys
+	import ephem
+	import math
+except:
+	print(str(sys.argv[0]) + ': One or more modules missing: sys,pyephem,math')
+	raise SystemExit
 
 class ConfigOptions():
 	def __init__(self,config_file):
