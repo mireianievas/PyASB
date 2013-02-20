@@ -63,7 +63,7 @@ class ReadOptions():
 				elif input_option == 'use_phottable':
 					self.photometry_table_path=self.output_file()
 				elif input_option == 'use_skymap':
-					self.skymap_table_path=self.output_file()
+					self.skymap_path=self.output_file()
 				elif input_option == 'use_bouguerfit':
 					self.bouguerfit_path=self.output_file()
 				elif input_option == 'use_sb':

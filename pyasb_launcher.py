@@ -45,7 +45,9 @@ config_filename  = 'pyasb_config.cfg'
 
 @profile
 class LoadImage():
-	def __init__(self,InputFile):
+	def __init__(self,InputOptions):
+		# Load Image file list		
+		InputFileList = InputOptions.fits_filename_list[0]
 		''' Load fits image '''
 		self.FitsImage = FitsImage(InputFile)
 		self.ImageInfo = ImageInfo(self.FitsImage.fits_Header,config_filename)
@@ -56,7 +58,39 @@ class LoadImage():
 				MasterBias=None)
 		except:
 			print('Cannot reduce science frame')
-
+			
+		#Output file paths
+		
+		# Star Map
+		try:
+			ImageInfo.skymap_path = InputOptions.skymap_path
+		except:
+			try: ImageInfo.skymap_path
+			except: 
+				raise
+				SystemExit
+				
+		# Bouguer Fit		
+		try:
+			ImageInfo.bouguerfit_path = InputOptions.bouguerfit_path
+		except:
+			try: ImageInfo.bouguerfit_path
+			except: 
+				raise
+				SystemExit
+		
+		# SkyBrightness
+		try:
+			ImageInfo.skybrightness_path = InputOptions.skybrightness_map_path
+		except:
+			try: ImageInfo.skybrightness_path
+			except: 
+				raise
+				SystemExit
+		
+		
+		
+		
 @profile
 class ImageAnalysis():
 	def __init__(self,Image):
@@ -66,7 +100,6 @@ class ImageAnalysis():
 		ObsPyephem_ = pyephem_setup(Image.ImageInfo)
 		
 		Image.ImageInfo.catalog_filename = 'ducati_catalog.tsv'
-		Image.ImageInfo.skymap_file = "test_map.png"
 		self.StarCatalog = StarCatalog(Image.FitsImage,Image.ImageInfo,ObsPyephem_)
 		
 		print('Star Map plot ...'),
@@ -75,10 +108,12 @@ class ImageAnalysis():
 
 @profile
 class MultipleImageAnalysis():
-	def __init__(self,InputFileList):
+	def __init__(self,InputOptions):
 		class StarCatalog_():
 			StarList = []
 			StarList_woPhot = []
+		
+		InputFileList = InputOptions.fits_filename_list
 		
 		for EachFile in InputFileList:
 			EachImage = LoadImage(EachFile)
@@ -116,7 +151,7 @@ if __name__ == '__main__':
 		raise SystemExit
 	
 	# Load Image into memory & reduce it.
-	Image_ = LoadImage(InputFile =InputOptions.fits_filename_list[0])
+	Image_ = LoadImage(InputOptions)#InputFile =InputOptions.fits_filename_list[0])
 	
 	# Look for stars that appears in the catalog, measure their fluxes. Generate starmap.
 	ImageAnalysis_ = ImageAnalysis(Image_)
