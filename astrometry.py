@@ -12,11 +12,12 @@ ____________________________
 '''
 
 try:
+	import sys
 	import numpy as np
 	from math import pi,sin,cos,sqrt,atan2,asin
 	import ephem
 except:
-	print 'One or more modules missing: numpy,math,ephem'
+	print(str(sys.argv[0])+': One or more modules missing: numpy,math,ephem')
 	raise SystemExit
 
 __author__ = "Miguel Nievas"
@@ -99,18 +100,18 @@ Vectorial functions.
 
 class ImageCoordinates():
 	def __init__(self,ImageInfo):
+		self.calculate_altaz(ImageInfo)
+	
+	def calculate_altaz(self,ImageInfo):
+		''' Reimplementation with numpy arrays (fast on large arrays). 
+			We need it as we will use a very large array'''
 		x = np.arange(ImageInfo.resolution[0])
 		y = np.arange(ImageInfo.resolution[1])
 		X,Y = np.meshgrid(x,y)
-		self.calculate_altaz(ImageInfo,X,Y)
-	
-	def calculate_altaz(self,ImageInfo,X,Y):
-		''' Reimplementation with numpy arrays (fast on large arrays). 
-			We need it as we will use a very large array'''
 		Xi = X - ImageInfo.resolution[0]/2-ImageInfo.delta_x
 		Yi = Y - ImageInfo.resolution[1]/2-ImageInfo.delta_y
 		Rfactor = np.sqrt(Xi**2 + Yi**2)/ImageInfo.radial_factor
 		Rfactor[Rfactor>360./np.pi]=360./np.pi
-		self.altitude_map = np.array((180.0/np.pi)*np.arcsin(1-0.5*(np.pi*Rfactor/180.0)**2),dtype='float32')
-		self.azimuth_map  = np.array((360+180-(ImageInfo.azimuth_zeropoint + 180.0*np.arctan2(Yi,-Xi)/pi))%360,dtype='float32')
+		self.altitude_map = np.array((180.0/np.pi)*np.arcsin(1-0.5*(np.pi*Rfactor/180.0)**2),dtype='float16')
+		self.azimuth_map  = np.array((360+180-(ImageInfo.azimuth_zeropoint + 180.0*np.arctan2(Yi,-Xi)/pi))%360,dtype='float16')
 	

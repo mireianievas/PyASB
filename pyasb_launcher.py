@@ -26,6 +26,7 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 try:
 	#from read_config import *
 	import sys
+	from input_options import *
 	from program_help import *
 	from astrometry import *
 	from star_calibration import *
@@ -35,58 +36,101 @@ try:
 	from skymap_plot import *
 	import time
 except:
-	print 'One or more modules missing: please check'
-	raise
+	print(str(sys.argv[0]) + ': One or more modules missing: please check')
+	raise SystemExit
 
 
 config_filename  = 'pyasb_config.cfg'
 
-class InstrumentCalibration():
-	@profile
-	def __init__(self,InputFile,BouguerFile=None):
-		PlatformHelp_ = PlatformHelp()
-		#ConfigOptions = ConfigOptions(config_name)
-		FitsImage_ = FitsImage(InputFile)
-		ImageInfo_ = ImageInfo(FitsImage_.fits_Header,config_filename)
-		
-		if BouguerFile==None:
-			ImageInfo_.bouguerplot_file = False
-		else:
-			ImageInfo_.bouguerplot_file = BouguerFile
-		
+
+@profile
+class LoadImage():
+	def __init__(self,InputFile):
+		''' Load fits image '''
+		self.FitsImage = FitsImage(InputFile)
+		self.ImageInfo = ImageInfo(self.FitsImage.fits_Header,config_filename)
 		try:
-			FitsImage_.reduce_science_frame(ImageInfo_.darkframe,ImageInfo_.sel_flatfield,MasterBias=None)
+			self.FitsImage.reduce_science_frame(\
+				self.ImageInfo.darkframe,\
+				self.ImageInfo.sel_flatfield,\
+				MasterBias=None)
 		except:
 			print('Cannot reduce science frame')
+
+@profile
+class ImageAnalysis():
+	def __init__(self,Image):
+		''' Analize image and perform star astrometry & photometry. 
+		    Returns ImageInfo and StarCatalog'''
 		
-		ObsPyephem_ = pyephem_setup(ImageInfo_)
+		ObsPyephem_ = pyephem_setup(Image.ImageInfo)
 		
-		ImageCoordinates_ = ImageCoordinates(ImageInfo_)
-		
-		ImageInfo_.catalog_filename = 'ducati_catalog.tsv'
-		ImageInfo_.skymap_file = "test_map.png"
-		StarCatalog_ = StarCatalog(FitsImage_,ImageInfo_,ObsPyephem_)
+		Image.ImageInfo.catalog_filename = 'ducati_catalog.tsv'
+		Image.ImageInfo.skymap_file = "test_map.png"
+		self.StarCatalog = StarCatalog(Image.FitsImage,Image.ImageInfo,ObsPyephem_)
 		
 		print('Star Map plot ...'),
-		SkyMap_ = SkyMap(StarCatalog_,ImageInfo_,ImageCoordinates_,FitsImage_)
+		SkyMap_ = SkyMap(self.StarCatalog,Image.ImageInfo,Image.FitsImage)
 		print('OK')
+
+@profile
+class MultipleImageAnalysis():
+	def __init__(self,InputFileList):
+		class StarCatalog_():
+			StarList = []
+			StarList_woPhot = []
 		
+		for EachFile in InputFileList:
+			EachImage = LoadImage(EachFile)
+			EachAnalysis = ImageAnalysis(EachImage)
+			self.StarCatalog.StarList.append(EachAnalysis.StarCatalog.StarList)
+			self.StarCatalog.StarList_woPhot.append(EachAnalysis.StarCatalog.StarList_woPhot)
+
+@profile
+class InstrumentCalibration():
+	def __init__(self,ImageInfo,StarCatalog):
 		print('Calculating Instrument zeropoint and extinction ...'),
-		BouguerFit_ = BouguerFit(ImageInfo_,StarCatalog_ )
-		BouguerFit_.bouguer_plot(ImageInfo_)
+		self.BouguerFit = BouguerFit(ImageInfo,StarCatalog)
+		self.BouguerFit.bouguer_plot(ImageInfo)
 		print('OK')
-		
+
+@profile
+class MeasureSkyBrightness():
+	def __init__(self,FitsImage,ImageInfo,BouguerFit):
 		print('Generating Sky Brightness Map ...'),
-		SkyBrightness_ = SkyBrightness(FitsImage_,ImageInfo_,ImageCoordinates_,BouguerFit_)
-		SkyBrightnessGraph_ = SkyBrightnessGraph(SkyBrightness_,ImageInfo_,BouguerFit_)
+		ImageCoordinates_ = ImageCoordinates(ImageInfo)
+		SkyBrightness_ = SkyBrightness(FitsImage,ImageInfo,ImageCoordinates_,BouguerFit)
+		SkyBrightnessGraph_ = SkyBrightnessGraph(SkyBrightness_,ImageInfo,BouguerFit)
 		print('OK')
-		
+
 
 if __name__ == '__main__':
-	bouguerplot_file = "~/mibouguerplot.png"
-	# Calibrate instrument with image
-	Imag = InstrumentCalibration(
-		InputFile = './Johnson_V20130105_003111.fit.gz',
-		BouguerFile = bouguerplot_file)
+	PlatformHelp_ = PlatformHelp()
+	InputOptions = ReadOptions(sys.argv)
+	
+	try:
+		assert(InputOptions.show_help == False)
+	except:
+		# Show help and halt
+		PlatformHelp_.show_help()
+		raise SystemExit
+	
+	# Load Image into memory & reduce it.
+	Image_ = LoadImage(InputFile =InputOptions.fits_filename_list[0])
+	
+	# Look for stars that appears in the catalog, measure their fluxes. Generate starmap.
+	ImageAnalysis_ = ImageAnalysis(Image_)
+	
+	# Calibrate instrument with image. Generate fit plot.
+	InstrumentCalibration_ = InstrumentCalibration(\
+		Image_.ImageInfo,
+		ImageAnalysis_.StarCatalog)
+	
+	# Measure sky brightness / background. Generate map.
+	ImageSkyBrightness = MeasureSkyBrightness(\
+		Image_.FitsImage,
+		Image_.ImageInfo,
+		InstrumentCalibration_.BouguerFit)
+	
 	
 	

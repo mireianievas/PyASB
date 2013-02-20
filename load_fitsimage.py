@@ -12,13 +12,6 @@ created and maintained by Miguel Nievas [UCM].
 ____________________________
 '''
 
-try:
-	import numpy as np
-	import pyfits
-except:
-	print 'One or more modules missing: pyfits,HeaderTest'
-	raise SystemExit
-
 __author__ = "Miguel Nievas"
 __copyright__ = "Copyright 2012, PyASB project"
 __credits__ = ["Miguel Nievas"]
@@ -31,12 +24,13 @@ __email__ = "miguelnr89[at]gmail[dot]com"
 __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 try:
+	import sys
+	import numpy as np
+	import pyfits
 	from read_config import *
 except:
-	print 'One or more modules missing: pyfits, read_config'
-	raise
-
-
+	print(str(sys.argv[0])+': One or more modules missing: pyfits, HeaderTest, read_config')
+	raise SystemExit
 
 class ImageTest():
 	'''Perform some test on the image header and extract information'''
@@ -56,7 +50,7 @@ class ImageTest():
 		try: date = file_header['DATE']
 		except:	raise
 		else:
-			assert len(date)==15, 'Date format not YYYYMMDD_HHMMSS'
+			assert len(date)==15 and date[8]=="_", 'Date format not YYYYMMDD_HHMMSS'
 			return date	
 	
 	@staticmethod
@@ -221,7 +215,7 @@ class ImageInfo(ImageTest,ConfigOptions):
 		for option in self.FileOptions:
 			if   option[0]=="obs_latitude":        self.latitude=float(option[1])
 			elif option[0]=="obs_longitude":       self.longitude=float(option[1])
-			elif option[0]=="obs_name":            self.obs_name=str(option[1])
+			elif option[0]=="obs_name":            self.obs_name=str(option[1]).replace(" ","")
 			elif option[0]=="delta_x":             self.delta_x=float(option[1])
 			elif option[0]=="delta_y":             self.delta_y=float(option[1])
 			elif option[0]=="radial_factor":       self.radial_factor=float(option[1])
@@ -237,7 +231,10 @@ class ImageInfo(ImageTest,ConfigOptions):
 			elif option[0]=="max_magnitude":       self.max_magnitude = float(option[1])
 			elif option[0]=="max_star_number":     self.max_star_number = int(option[1])
 			elif option[0]=="pixel_scale":         self.pixel_scale = float(option[1])
-			elif option[0]=="backgroundmap_title": self.backgroundmap_title = str(option[1])
+			elif option[0]=="backgroundmap_title": self.backgroundmap_title = str(option[1]).replace(" ","")
+			elif option[0]=="skymap_path":         self.skymap_path = str(option[1]).replace(" ","")
+			elif option[0]=="bouguerfit_path":     self.bouguerfit_path = str(option[1]).replace(" ","")
+			elif option[0]=="skybrightness_path":  self.skybrightness_path = str(option[1]).replace(" ","")
 			elif option[0]=="darkframe":           self.darkframe=option[1]
 			elif option[0]=="biasframe":           self.biasframe=option[1]
 			else:
