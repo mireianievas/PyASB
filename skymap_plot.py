@@ -36,11 +36,17 @@ except:
 	print(str(sys.argv[0]) + ': One or more modules missing: matplotlib')
 	raise SystemExit
 
-@profile
 class SkyMap():
 	'''	SkyMap class '''
 	
 	def __init__(self,StarCatalog,ImageInfo,FitsImage):
+		if ImageInfo.skymap_path==False:
+			# Don't draw anything
+			print('Skipping Skymap Graph ...')
+			return(None)
+		else:
+			print('Star Map plot ...')
+		
 		stretched_fits_data = self.stretch_logdata(FitsImage.fits_data,10,99)
 		self.define_skymap();
 		self.draw_skymap_data(StarCatalog,ImageInfo,stretched_fits_data)
@@ -143,45 +149,14 @@ class SkyMap():
 	def show_figure(self,ImageInfo):
 		def skymap_filename(ImageInfo):
 			filename = ImageInfo.skymap_path +\
-				"/Skymap_"+ImageInfo.obs_name+"_"+ImageInfo.fits_date+".png"
+				"/Skymap_"+ImageInfo.obs_name+"_"+ImageInfo.fits_date+"_"+\
+				ImageInfo.used_filter+".png"
 			return(filename)
 		
-		plt.savefig(skymap_filename(ImageInfo),bbox_inches='tight')
-		plt.close('all')
-		
-	
-	
-	
-	'''
-	def complete_file_name(self):
-		# Add observatory name, date and time
-		filenamesplit = self.ImageInfo.skymap_file.split(".")
-		try:
-			assert len(filenamesplit)==2
-		except:
-			if len(filenamesplit)>2:
-				imformat = "";
-				for index in xrange(1,len(filenamesplit)):
-					imformat+=filenamesplit[index]
-					if index+1<len(filenamesplit):
-						imformat+="."
-				basename = filenamesplit[0]
-			elif len(filenamesplit)<2:
-				basename = str(filenamesplit[0])
-				imformat = ".png"
+		if ImageInfo.skymap_path=="screen":
+			plt.show()
 		else:
-			basename = str(filenamesplit[0])
-			imformat = str(filenamesplit[1])
+			plt.savefig(skymap_filename(ImageInfo),bbox_inches='tight')
 		
-		date_str = str(self.ImageInfo.date_array[0])+str(self.ImageInfo.date_array[1])+\
-			str(self.ImageInfo.date_array[2])+"_"+str(self.ImageInfo.date_array[3])+\
-			str(self.ImageInfo.date_array[4])+str(self.ImageInfo.date_array[5])
-		
-		try: basename+="_"+self.ImageInfo.obs_name
-		except: pass
-		
-		try: basename += "_"+date_str
-		except: pass
-		
-		return basename+"."+imformat
-	'''
+		plt.clf()
+		plt.close('all')
