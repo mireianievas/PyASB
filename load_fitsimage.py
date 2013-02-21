@@ -79,10 +79,9 @@ class ImageTest():
 class FitsImage(ImageTest):
 	def __init__(self,input_file):
 		self.load_science(input_file)
-		self.__clear__()
 		
 	def load_science(self,input_file):
-		print('Loading ScienceFrame ...'),
+		print('Loading ScienceFrame ['+str(input_file)+'] ...'),
 		try: 
 			file_opened = pyfits.open(input_file)
 			self.fits_data   = file_opened[0].data
@@ -91,7 +90,6 @@ class FitsImage(ImageTest):
 		except:	raise
 		else: 
 			print('OK')
-			print('File '+str(input_file)+' opened correctly.')
 		
 	def load_dark(self,MasterDark):
 		print('Loading MasterDark ...'),
@@ -213,30 +211,33 @@ class ImageInfo(ImageTest,ConfigOptions):
 		
 		# Config processing
 		for option in self.FileOptions:
-			if   option[0]=="obs_latitude":        self.latitude=float(option[1])
-			elif option[0]=="obs_longitude":       self.longitude=float(option[1])
-			elif option[0]=="obs_name":            self.obs_name=str(option[1]).replace(" ","")
-			elif option[0]=="delta_x":             self.delta_x=float(option[1])
-			elif option[0]=="delta_y":             self.delta_y=float(option[1])
-			elif option[0]=="radial_factor":       self.radial_factor=float(option[1])
-			elif option[0]=="azimuth_zeropoint":   self.azimuth_zeropoint=float(option[1])
-			elif option[0]=="min_altitude":        self.min_altitude=float(option[1])
-			elif option[0]=="base_radius":         self.base_radius=float(option[1])
-			elif option[0]=="baseflux_detectable": self.baseflux_detectable=float(option[1])
-			elif option[0]=="lim_Kendall_tau":     self.lim_Kendall_tau=float(option[1])
-			elif option[0]=="ccd_bits":            self.ccd_bits=float(option[1])
-			elif option[0]=="ccd_gain":            self.ccd_gain=float(option[1])
-			elif option[0]=="read_noise":          self.read_noise=float(option[1])
-			elif option[0]=="thermal_noise":       self.thermal_noise=float(option[1])
-			elif option[0]=="max_magnitude":       self.max_magnitude = float(option[1])
-			elif option[0]=="max_star_number":     self.max_star_number = int(option[1])
-			elif option[0]=="pixel_scale":         self.pixel_scale = float(option[1])
-			elif option[0]=="backgroundmap_title": self.backgroundmap_title = str(option[1]).replace(" ","")
-			elif option[0]=="skymap_path":         self.skymap_path = str(option[1]).replace(" ","")
-			elif option[0]=="bouguerfit_path":     self.bouguerfit_path = str(option[1]).replace(" ","")
-			elif option[0]=="skybrightness_path":  self.skybrightness_path = str(option[1]).replace(" ","")
-			elif option[0]=="darkframe":           self.darkframe=option[1]
-			elif option[0]=="biasframe":           self.biasframe=option[1]
+			if   option[0]=="obs_latitude":             self.latitude=float(option[1])
+			elif option[0]=="obs_longitude":            self.longitude=float(option[1])
+			elif option[0]=="obs_name":                 self.obs_name=str(option[1]).replace(" ","")
+			elif option[0]=="delta_x":                  self.delta_x=float(option[1])
+			elif option[0]=="delta_y":                  self.delta_y=float(option[1])
+			elif option[0]=="radial_factor":            self.radial_factor=float(option[1])
+			elif option[0]=="azimuth_zeropoint":        self.azimuth_zeropoint=float(option[1])
+			elif option[0]=="min_altitude":             self.min_altitude=float(option[1])
+			elif option[0]=="base_radius":              self.base_radius=float(option[1])
+			elif option[0]=="baseflux_detectable":      self.baseflux_detectable=float(option[1])
+			elif option[0]=="lim_Kendall_tau":          self.lim_Kendall_tau=float(option[1])
+			elif option[0]=="ccd_bits":                 self.ccd_bits=float(option[1])
+			elif option[0]=="ccd_gain":                 self.ccd_gain=float(option[1])
+			elif option[0]=="read_noise":               self.read_noise=float(option[1])
+			elif option[0]=="thermal_noise":            self.thermal_noise=float(option[1])
+			elif option[0]=="max_magnitude":            self.max_magnitude = float(option[1])
+			elif option[0]=="max_star_number":          self.max_star_number = int(option[1])
+			elif option[0]=="pixel_scale":              self.pixel_scale = float(option[1])
+			elif option[0]=="backgroundmap_title":      self.backgroundmap_title = str(option[1])
+			elif option[0]=="skymap_path":              self.skymap_path = str(option[1]).replace(" ","")
+			elif option[0]=="photometry_table_path":    self.photometry_table_path = str(option[1]).replace(" ","")
+			elif option[0]=="bouguerfit_path":          self.bouguerfit_path = str(option[1]).replace(" ","")
+			elif option[0]=="skybrightness_map_path":   self.skybrightness_map_path = str(option[1]).replace(" ","")
+			elif option[0]=="skybrightness_table_path": self.skybrightness_table_path = str(option[1]).replace(" ","")
+			elif option[0]=="summary_path":             self.summary_path = str(option[1]).replace(" ","")
+			elif option[0]=="darkframe":                self.darkframe=option[1]
+			elif option[0]=="biasframe":                self.biasframe=option[1]
 			else:
 				# Options that depends on the filter
 				for the_filter in xrange(len(filters)):

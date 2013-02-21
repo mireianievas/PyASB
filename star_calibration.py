@@ -16,16 +16,6 @@ ____________________________
 
 DEBUG = False
 
-try:
-	import sys
-	import ephem
-	import math
-	from astrometry import *
-	from skymap_plot import *
-except:
-	print(str(sys.argv[0]) + ': One or more modules missing: pyephem,math,astrometry')
-	raise SystemExit
-
 __author__ = "Miguel Nievas"
 __copyright__ = "Copyright 2012, PyASB project"
 __credits__ = ["Miguel Nievas"]
@@ -37,6 +27,15 @@ __maintainer__ = "Miguel Nievas"
 __email__ = "miguelnr89[at]gmail[dot]com"
 __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
+try:
+	import sys
+	import ephem
+	import math
+	from astrometry import *
+	from skymap_plot import *
+except:
+	print(str(sys.argv[0]) + ': One or more modules missing: pyephem,math,astrometry')
+	raise SystemExit
 
 class Star():
 	def __init__(self,StarCatalogLine,FitsImage,ImageInfo,ObsPyephem):
@@ -370,7 +369,7 @@ class Star():
 				old_starflux = self.starflux
 				self.R1 = radius
 				self.measure_star_fluxes(fits_data)
-				if self.starflux < (1+0.01*num_iterations**2)*old_starflux:
+				if self.starflux < (1+0.002*num_iterations**2)*old_starflux:
 					iterate=False
 				else:
 					radius+=1
@@ -384,14 +383,16 @@ class Star():
 		try:
 			_25logF      = 2.5*math.log10(self.starflux/ImageInfo.exposure)
 			_25logF_unc  = (2.5/math.log(10))*self.starflux_err/self.starflux
-			self.m25logF     = self.FilterMag+_25logF
-			self.m25logF_unc = _25logF_unc
+			color_term = ImageInfo.color_terms[ImageInfo.used_filter][0]
+			color_term_err = ImageInfo.color_terms[ImageInfo.used_filter][1]
+			self.m25logF     = self.FilterMag+_25logF+color_term*self.Color
+			self.m25logF_unc = math.sqrt(_25logF_unc**2 + (color_term_err*self.Color)**2)
 		except:
 			self.destroy=True
 	
 	def __clear__(self):
 		backup_attributes = [\
-			"destroy","name","FilterMag","Color",\
+			"destroy","HDcode","name","FilterMag","Color",\
 			"RA1950","DEC1950","azimuth","altit_real","airmass","Xcoord","Ycoord",\
 			"R1","R2","R3","starflux","starflux_err","m25logF","m25logF_unc"]
 		for atribute in list(self.__dict__):
@@ -409,6 +410,8 @@ class StarCatalog():
 		self.load_catalog_file(ImageInfo.catalog_filename)
 		print('Star processing ...')
 		self.process_catalog(FitsImage,ImageInfo,ObsPyephem)
+		self.save_to_file(ImageInfo)
+		
 	
 	def load_catalog_file(self,catalog_filename):
 		''' Returns Catalog lines from the catalog_filename '''
@@ -447,5 +450,30 @@ class StarCatalog():
 		
 		print(" - Total stars: "+str(len(self.StarList_woPhot)))
 		print(" - With photometry: " +str(len(self.StarList)))
+	
+	def save_to_file(self,ImageInfo):
+		try:
+			assert(ImageInfo.photometry_table_path!=False)
+		except:
+			print('Skipping write photometric table to file')
+		else:
+			print('Write photometric table to file')
+			def phottable_filename(ImageInfo):
+				filename = ImageInfo.photometry_table_path +\
+					"/PhotTable_"+ImageInfo.obs_name+"_"+ImageInfo.fits_date+"_"+\
+					ImageInfo.used_filter+".txt"
+				return(filename)
+			
+			photfile = open(phottable_filename(ImageInfo),'w+')
+			
+			content = ['#HDcode, CommonName, RA1950, DEC1950, Azimuth, Altitude, Airmass, Magnitude, Color(#-V), StarFlux, StarFluxErr, mag+2.5logF, [mag+2.5logF]_Err\n']
+			for Star in self.StarList:
+				content.append(str(Star.HDcode)+', '+str(Star.name)+', '+str(Star.RA1950)+', '+str(Star.DEC1950)+', '+\
+					str(Star.azimuth)+', '+str(Star.altit_real)+', '+str(Star.airmass)+', '+\
+					str(Star.FilterMag)+', '+str(Star.Color)+', '+str(Star.starflux)+', '+str(Star.starflux_err)+', '+\
+					str(Star.m25logF)+', '+str(Star.m25logF_unc)+'\n')
+			photfile.writelines(content)
+			photfile.close()
+			
 		
 

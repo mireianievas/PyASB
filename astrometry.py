@@ -54,11 +54,7 @@ def xy2horiz(X,Y,ImageInfo):
 	Y = Y - ImageInfo.resolution[1]/2-ImageInfo.delta_y
 	Rfactor = sqrt(X**2 + Y**2)/ImageInfo.radial_factor
 	altitude = (180.0/pi)*asin(1-0.5*(pi*Rfactor/180.0)**2)
-	azimuth  = 360+180-(ImageInfo.azimuth_zeropoint + 180.0*atan2(Y,-X)/pi)%360
-	while azimuth<0:
-		azimuth += 360
-	while azimuth>=360:
-		azimuth -= 360
+	azimuth  = (360+ImageInfo.azimuth_zeropoint + 180.0*atan2(Y,-X)/pi)%360
 	return azimuth,altitude
 
 def zenith_position(ImageInfo):
@@ -111,7 +107,8 @@ class ImageCoordinates():
 		Xi = X - ImageInfo.resolution[0]/2-ImageInfo.delta_x
 		Yi = Y - ImageInfo.resolution[1]/2-ImageInfo.delta_y
 		Rfactor = np.sqrt(Xi**2 + Yi**2)/ImageInfo.radial_factor
-		Rfactor[Rfactor>360./np.pi]=360./np.pi
-		self.altitude_map = np.array((180.0/np.pi)*np.arcsin(1-0.5*(np.pi*Rfactor/180.0)**2),dtype='float16')
-		self.azimuth_map  = np.array((360+180-(ImageInfo.azimuth_zeropoint + 180.0*np.arctan2(Yi,-Xi)/pi))%360,dtype='float16')
+		Rfactor[Rfactor>360./pi]=360./pi
+		self.altitude_map = np.array((180.0/pi)*np.arcsin(1-0.5*(pi*Rfactor/180.0)**2),dtype='float16')
+		# We start counting from North=0deg
+		self.azimuth_map  = np.array((360+(ImageInfo.azimuth_zeropoint + 180.0*np.arctan2(Yi,-Xi)/pi))%360,dtype='float16')
 	

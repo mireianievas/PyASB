@@ -24,7 +24,7 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 
 try:
-	#from read_config import *
+	import gc
 	import sys
 	from input_options import *
 	from program_help import *
@@ -37,19 +37,20 @@ try:
 	import time
 except:
 	print(str(sys.argv[0]) + ': One or more modules missing: please check')
-	raise SystemExit
+	raise# SystemExit
 
 
 config_filename  = 'pyasb_config.cfg'
 
 
-@profile
 class LoadImage():
-	def __init__(self,InputOptions):
-		# Load Image file list		
-		InputFileList = InputOptions.fits_filename_list[0]
+	def __init__(self,InputOptions,input_file=None):
+		# Load Image file list
+		if input_file == None:
+			input_file = InputOptions.fits_filename_list[0]
+		
 		''' Load fits image '''
-		self.FitsImage = FitsImage(InputFile)
+		self.FitsImage = FitsImage(input_file)
 		self.ImageInfo = ImageInfo(self.FitsImage.fits_Header,config_filename)
 		try:
 			self.FitsImage.reduce_science_frame(\
@@ -57,41 +58,61 @@ class LoadImage():
 				self.ImageInfo.sel_flatfield,\
 				MasterBias=None)
 		except:
+			raise
 			print('Cannot reduce science frame')
-			
-		#Output file paths
 		
-		# Star Map
-		try:
-			ImageInfo.skymap_path = InputOptions.skymap_path
+		self.FitsImage.__clear__()
+		self.output_paths(InputOptions)
+		
+	def output_paths(self,InputOptions):
+		# Output file paths (NOTE: should be moved to another file or at least separated function)
+		# Photometric table
+		try: self.ImageInfo.photometry_table_path = InputOptions.photometry_table_path
 		except:
-			try: ImageInfo.skymap_path
+			try: self.ImageInfo.photometry_table_path
 			except: 
 				raise
 				SystemExit
-				
-		# Bouguer Fit		
-		try:
-			ImageInfo.bouguerfit_path = InputOptions.bouguerfit_path
+		
+		# Star Map
+		try: self.ImageInfo.skymap_path = InputOptions.skymap_path
 		except:
-			try: ImageInfo.bouguerfit_path
+			try: self.ImageInfo.skymap_path
+			except: 
+				raise
+				SystemExit
+		
+		# Bouguer Fit
+		try: self.ImageInfo.bouguerfit_path = InputOptions.bouguerfit_path
+		except:
+			try: self.ImageInfo.bouguerfit_path
 			except: 
 				raise
 				SystemExit
 		
 		# SkyBrightness
-		try:
-			ImageInfo.skybrightness_path = InputOptions.skybrightness_map_path
+		try: self.ImageInfo.skybrightness_map_path = InputOptions.skybrightness_map_path
 		except:
-			try: ImageInfo.skybrightness_path
+			try: self.ImageInfo.skybrightness_map_path
 			except: 
 				raise
 				SystemExit
 		
+		try: self.ImageInfo.skybrightness_table_path = InputOptions.skybrightness_table_path
+		except:
+			try: self.ImageInfo.skybrightness_table_path
+			except: 
+				raise
+				SystemExit
 		
-		
-		
-@profile
+		# Summary
+		try: self.ImageInfo.summary_path = InputOptions.summary_path
+		except:
+			try: self.ImageInfo.summary_path
+			except: 
+				raise
+				SystemExit
+
 class ImageAnalysis():
 	def __init__(self,Image):
 		''' Analize image and perform star astrometry & photometry. 
@@ -102,11 +123,8 @@ class ImageAnalysis():
 		Image.ImageInfo.catalog_filename = 'ducati_catalog.tsv'
 		self.StarCatalog = StarCatalog(Image.FitsImage,Image.ImageInfo,ObsPyephem_)
 		
-		print('Star Map plot ...'),
 		SkyMap_ = SkyMap(self.StarCatalog,Image.ImageInfo,Image.FitsImage)
-		print('OK')
 
-@profile
 class MultipleImageAnalysis():
 	def __init__(self,InputOptions):
 		class StarCatalog_():
@@ -121,23 +139,67 @@ class MultipleImageAnalysis():
 			self.StarCatalog.StarList.append(EachAnalysis.StarCatalog.StarList)
 			self.StarCatalog.StarList_woPhot.append(EachAnalysis.StarCatalog.StarList_woPhot)
 
-@profile
 class InstrumentCalibration():
 	def __init__(self,ImageInfo,StarCatalog):
-		print('Calculating Instrument zeropoint and extinction ...'),
 		self.BouguerFit = BouguerFit(ImageInfo,StarCatalog)
 		self.BouguerFit.bouguer_plot(ImageInfo)
-		print('OK')
 
-@profile
+
 class MeasureSkyBrightness():
 	def __init__(self,FitsImage,ImageInfo,BouguerFit):
-		print('Generating Sky Brightness Map ...'),
 		ImageCoordinates_ = ImageCoordinates(ImageInfo)
 		SkyBrightness_ = SkyBrightness(FitsImage,ImageInfo,ImageCoordinates_,BouguerFit)
 		SkyBrightnessGraph_ = SkyBrightnessGraph(SkyBrightness_,ImageInfo,BouguerFit)
-		print('OK')
+		self.SBzenith = SkyBrightness_.SBzenith
+		self.SBzenith_err = SkyBrightness_.SBzenith_err
 
+# NOTE: The following 2 functions should be moved to separate file or at least to a new class
+# NOTE: Maybe should be rewrite as follows?:
+# 1.) Create the file with the header
+# 2.) Iterative add lines
+
+def summarize_results(InputOptions, Image, ImageAnalysis, InstrumentCalibration, ImageSkyBrightness):
+	sum_date   = str(Image.ImageInfo.fits_date)
+	sum_filter = str(Image.ImageInfo.used_filter)
+	sum_stars  = str(InstrumentCalibration.BouguerFit.Regression.Nstars_initial)
+	sum_gstars = str("%.1f"%float(InstrumentCalibration.BouguerFit.Regression.Nstars_rel))
+	sum_zpoint = \
+		str("%.3f"%float(InstrumentCalibration.BouguerFit.Regression.mean_zeropoint))+' +/- '+\
+		str("%.3f"%float(InstrumentCalibration.BouguerFit.Regression.error_zeropoint))
+	sum_extinction = \
+		str("%.3f"%float(InstrumentCalibration.BouguerFit.Regression.extinction))+' +/- '+\
+		str("%.3f"%float(InstrumentCalibration.BouguerFit.Regression.error_extinction))
+	sum_skybrightness = \
+		str("%.3f"%float(ImageSkyBrightness.SBzenith))+' +/- '+\
+		str("%.3f"%float(ImageSkyBrightness.SBzenith_err))
+		
+	return(sum_date, sum_filter,sum_stars, sum_gstars, sum_zpoint, sum_extinction, sum_skybrightness)
+
+def save_summary_to_file(ImageInfo,summary_content):
+	try:
+		assert(ImageInfo.summary_path!=False)
+	except:
+		print('Skipping write summary to file')
+	else:
+		print('Write summary to file')
+		def summary_filename(ImageInfo):
+			filename = ImageInfo.photometry_table_path +\
+				"/Summary_"+ImageInfo.obs_name+"_"+ImageInfo.fits_date+"_"+\
+				ImageInfo.used_filter+".txt"
+			return(filename)
+		
+		photfile = open(summary_filename(ImageInfo),'w+')
+		
+		content = ['#Date, Filter, Stars, % Good Stars, ZeroPoint, Extinction, SkyBrightness\n']
+		for line in summary_content:
+			content_line = ""
+			for element in line:
+				content_line += element + ", "
+			content_line += "\n"
+			content.append(content_line)
+		
+		photfile.writelines(content)
+		photfile.close()
 
 if __name__ == '__main__':
 	PlatformHelp_ = PlatformHelp()
@@ -150,22 +212,27 @@ if __name__ == '__main__':
 		PlatformHelp_.show_help()
 		raise SystemExit
 	
-	# Load Image into memory & reduce it.
-	Image_ = LoadImage(InputOptions)#InputFile =InputOptions.fits_filename_list[0])
-	
-	# Look for stars that appears in the catalog, measure their fluxes. Generate starmap.
-	ImageAnalysis_ = ImageAnalysis(Image_)
-	
-	# Calibrate instrument with image. Generate fit plot.
-	InstrumentCalibration_ = InstrumentCalibration(\
-		Image_.ImageInfo,
-		ImageAnalysis_.StarCatalog)
-	
-	# Measure sky brightness / background. Generate map.
-	ImageSkyBrightness = MeasureSkyBrightness(\
-		Image_.FitsImage,
-		Image_.ImageInfo,
-		InstrumentCalibration_.BouguerFit)
-	
-	
+	for input_file in InputOptions.fits_filename_list:
+		# Load Image into memory & reduce it.
+		Image_ = LoadImage(InputOptions,input_file)
+		
+		# Look for stars that appears in the catalog, measure their fluxes. Generate starmap.
+		ImageAnalysis_ = ImageAnalysis(Image_)
+		
+		# Calibrate instrument with image. Generate fit plot.
+		InstrumentCalibration_ = InstrumentCalibration(\
+			Image_.ImageInfo,
+			ImageAnalysis_.StarCatalog)
+		
+		# Measure sky brightness / background. Generate map.
+		ImageSkyBrightness = MeasureSkyBrightness(\
+			Image_.FitsImage,
+			Image_.ImageInfo,
+			InstrumentCalibration_.BouguerFit)
+		
+		summary_content = summarize_results(InputOptions, Image_, ImageAnalysis_, \
+			InstrumentCalibration_, ImageSkyBrightness)
+		
+		save_summary_to_file(Image_.ImageInfo, [summary_content])
+		gc.collect()
 	

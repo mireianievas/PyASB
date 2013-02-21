@@ -115,8 +115,15 @@ class ReadOptions():
 			if self.options.get(self.input_options[2], lambda : None)():
 				self.need_date_or_file()
 			else:
-				list_files=self.input_options[2].split(",")
-				self.input_options.remove(self.input_options[2]); self.input_options.remove(self.input_options[1])
+				iterate = True
+				list_files = []
+				while(iterate == True):
+					list_files.append(self.input_options[2])
+					self.input_options.remove(self.input_options[2]); 
+					if self.input_options[2].replace(" ","")[0]=="-":
+						iterate=False
+				
+				self.input_options.remove(self.input_options[1])
 				return list_files
 	
 	def output_file(self):

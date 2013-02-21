@@ -41,6 +41,7 @@ except:
 
 class BouguerFit():
 	def __init__(self,ImageInfo,PhotometricCatalog):
+		print('Calculating Instrument zeropoint and extinction ...')
 		self.bouguer_fit(ImageInfo,PhotometricCatalog)
 		if DEBUG==True:
 			print(len(StarCatalog.StarList))
@@ -51,9 +52,9 @@ class BouguerFit():
 		Return regression parameters (ZeroPoint, Extinction)
 		'''
 		
-		self.xdata    = [Star.airmass for Star in StarCatalog.StarList]
-		self.ydata    = [Star.m25logF for Star in StarCatalog.StarList]
-		self.yerr = [Star.m25logF_unc for Star in StarCatalog.StarList]
+		self.xdata = np.array([Star.airmass for Star in StarCatalog.StarList])
+		self.ydata = np.array([Star.m25logF for Star in StarCatalog.StarList])
+		self.yerr  = np.array([Star.m25logF_unc for Star in StarCatalog.StarList])
 			
 		try:
 			fixed_y     = ImageInfo.zeropoint
@@ -64,8 +65,18 @@ class BouguerFit():
 				self.Regression = TheilSenRegression(self.xdata,self.ydata)
 			except:
 				raise
+		
+		# Apply bad point filter to data
+		self.xdata = self.xdata[self.Regression.badfilter]
+		self.ydata = self.ydata[self.Regression.badfilter]
+		self.yerr = self.yerr[self.Regression.badfilter]
 	
 	def bouguer_plot(self,ImageInfo):
+		if ImageInfo.bouguerfit_path==False:
+			# Don't draw anything
+			print('Skipping BouguerFit Graph')
+			return(None)
+		
 		''' Plot photometric data from the bouguer fit '''
 	
 		xfit = np.linspace(1,astrometry.calculate_airmass(ImageInfo.min_altitude),10)
@@ -95,12 +106,17 @@ class BouguerFit():
 		
 		def bouguer_filename(ImageInfo):
 			filename = ImageInfo.bouguerfit_path +\
-				"/BouguerFit_"+ImageInfo.obs_name+"_"+ImageInfo.fits_date+".png"
+				"/BouguerFit_"+ImageInfo.obs_name+"_"+ImageInfo.fits_date+"_"+\
+				ImageInfo.used_filter+".png"
 			return(filename)
 		
 		# Show or save the bouguer plot
-		plt.savefig(bouguer_filename(ImageInfo),bbox_inches='tight')
-		#show_or_save_bouguerplot(bouguerfigure,ImageInfo,ObsPyephem)
+		if ImageInfo.bouguerfit_path=="screen":
+			plt.show()
+		else:
+			plt.savefig(bouguer_filename(ImageInfo),bbox_inches='tight')
+		
+		plt.clf()
 		plt.close('all')
 
 class TheilSenRegression():
@@ -129,6 +145,9 @@ class TheilSenRegression():
 		self.pair_blacklist = []
 		# Perform the regression
 		self.perform_regression()
+		# Delete bad points
+		self.delete_bad_points()
+		self.Nstars_final = sum(self.badfilter)
 		self.Nstars_rel = 100.*self.Nstars_final/self.Nstars_initial
 		
 	def perform_regression(self):
@@ -192,6 +211,11 @@ class TheilSenRegression():
 		
 	def calculate_residuals(self):
 		self.residuals = self.zeropoint_array-self.mean_zeropoint
+		
+	def delete_bad_points(self):
+		# 3*mean_residuals threshold
+		mean_residual = np.mean(abs(self.residuals))
+		self.badfilter = abs(self.residuals)<3*mean_residual
 		
 	def calculate_errors(self):
 		xmedcuad = np.median(self.Xpoints)**2
