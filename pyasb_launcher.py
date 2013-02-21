@@ -43,11 +43,11 @@ except:
 config_filename  = 'pyasb_config.cfg'
 
 
-@profile
+
 class LoadImage():
 	def __init__(self,InputOptions):
 		# Load Image file list		
-		InputFileList = InputOptions.fits_filename_list[0]
+		InputFile = InputOptions.fits_filename_list[0]
 		''' Load fits image '''
 		self.FitsImage = FitsImage(InputFile)
 		self.ImageInfo = ImageInfo(self.FitsImage.fits_Header,config_filename)
@@ -63,35 +63,32 @@ class LoadImage():
 		
 		# Star Map
 		try:
-			ImageInfo.skymap_path = InputOptions.skymap_path
+			self.ImageInfo.skymap_path = InputOptions.skymap_path
 		except:
-			try: ImageInfo.skymap_path
+			try: self.ImageInfo.skymap_path
 			except: 
 				raise
 				SystemExit
-				
-		# Bouguer Fit		
+		
+		# Bouguer Fit
 		try:
-			ImageInfo.bouguerfit_path = InputOptions.bouguerfit_path
+			self.ImageInfo.bouguerfit_path = InputOptions.bouguerfit_path
 		except:
-			try: ImageInfo.bouguerfit_path
+			try: self.ImageInfo.bouguerfit_path
 			except: 
 				raise
 				SystemExit
 		
 		# SkyBrightness
 		try:
-			ImageInfo.skybrightness_path = InputOptions.skybrightness_map_path
+			self.ImageInfo.skybrightness_path = InputOptions.skybrightness_map_path
 		except:
-			try: ImageInfo.skybrightness_path
+			try: self.ImageInfo.skybrightness_path
 			except: 
 				raise
 				SystemExit
-		
-		
-		
-		
-@profile
+
+
 class ImageAnalysis():
 	def __init__(self,Image):
 		''' Analize image and perform star astrometry & photometry. 
@@ -102,11 +99,9 @@ class ImageAnalysis():
 		Image.ImageInfo.catalog_filename = 'ducati_catalog.tsv'
 		self.StarCatalog = StarCatalog(Image.FitsImage,Image.ImageInfo,ObsPyephem_)
 		
-		print('Star Map plot ...'),
 		SkyMap_ = SkyMap(self.StarCatalog,Image.ImageInfo,Image.FitsImage)
-		print('OK')
 
-@profile
+
 class MultipleImageAnalysis():
 	def __init__(self,InputOptions):
 		class StarCatalog_():
@@ -121,22 +116,18 @@ class MultipleImageAnalysis():
 			self.StarCatalog.StarList.append(EachAnalysis.StarCatalog.StarList)
 			self.StarCatalog.StarList_woPhot.append(EachAnalysis.StarCatalog.StarList_woPhot)
 
-@profile
+
 class InstrumentCalibration():
 	def __init__(self,ImageInfo,StarCatalog):
-		print('Calculating Instrument zeropoint and extinction ...'),
 		self.BouguerFit = BouguerFit(ImageInfo,StarCatalog)
 		self.BouguerFit.bouguer_plot(ImageInfo)
-		print('OK')
 
-@profile
+
 class MeasureSkyBrightness():
 	def __init__(self,FitsImage,ImageInfo,BouguerFit):
-		print('Generating Sky Brightness Map ...'),
 		ImageCoordinates_ = ImageCoordinates(ImageInfo)
 		SkyBrightness_ = SkyBrightness(FitsImage,ImageInfo,ImageCoordinates_,BouguerFit)
 		SkyBrightnessGraph_ = SkyBrightnessGraph(SkyBrightness_,ImageInfo,BouguerFit)
-		print('OK')
 
 
 if __name__ == '__main__':
