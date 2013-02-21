@@ -16,16 +16,6 @@ ____________________________
 
 DEBUG = False
 
-try:
-	import sys
-	import ephem
-	import math
-	from astrometry import *
-	from skymap_plot import *
-except:
-	print(str(sys.argv[0]) + ': One or more modules missing: pyephem,math,astrometry')
-	raise SystemExit
-
 __author__ = "Miguel Nievas"
 __copyright__ = "Copyright 2012, PyASB project"
 __credits__ = ["Miguel Nievas"]
@@ -37,6 +27,15 @@ __maintainer__ = "Miguel Nievas"
 __email__ = "miguelnr89[at]gmail[dot]com"
 __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
+try:
+	import sys
+	import ephem
+	import math
+	from astrometry import *
+	from skymap_plot import *
+except:
+	print(str(sys.argv[0]) + ': One or more modules missing: pyephem,math,astrometry')
+	raise SystemExit
 
 class Star():
 	def __init__(self,StarCatalogLine,FitsImage,ImageInfo,ObsPyephem):
@@ -384,8 +383,10 @@ class Star():
 		try:
 			_25logF      = 2.5*math.log10(self.starflux/ImageInfo.exposure)
 			_25logF_unc  = (2.5/math.log(10))*self.starflux_err/self.starflux
-			self.m25logF     = self.FilterMag+_25logF
-			self.m25logF_unc = _25logF_unc
+			color_term = ImageInfo.color_terms[ImageInfo.used_filter][0]
+			color_term_err = ImageInfo.color_terms[ImageInfo.used_filter][1]
+			self.m25logF     = self.FilterMag+_25logF+color_term*self.Color
+			self.m25logF_unc = math.sqrt(_25logF_unc**2 + (color_term_err*self.Color)**2)
 		except:
 			self.destroy=True
 	

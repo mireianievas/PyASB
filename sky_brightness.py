@@ -45,12 +45,18 @@ class SkyBrightness():
 	'''
 	
 	def __init__(self,FitsImage,ImageInfo,ImageCoordinates,BouguerFit):
-		self.measure_in_grid(FitsImage,ImageInfo,ImageCoordinates,BouguerFit)
-		self.measure_in_positions()
+		if ImageInfo.skybrightness_path!=False:
+			print('Measuring All-Sky Sky Brightness ...')
+			self.measure_in_grid(FitsImage,ImageInfo,ImageCoordinates,BouguerFit)
+		else:
+			print('Measuring SB only at zenith ...')
+		self.measure_in_positions(FitsImage,ImageInfo,ImageCoordinates,BouguerFit)
 	
 	@staticmethod
 	def sky_brightness_region(BouguerFit,ImageInfo,fits_region_values):
-		sky_flux = np.median(fits_region_values)
+		#sky_flux = np.median(fits_region_values)
+		# faster median
+		sky_flux = np.sort(fits_region_values)[len(fits_region_values)/2]
 		sky_flux_err = np.std(fits_region_values)
 		sky_brightness = BouguerFit.Regression.mean_zeropoint - \
 			2.5*np.log10(sky_flux/(ImageInfo.exposure*ImageInfo.pixel_scale))
@@ -63,10 +69,10 @@ class SkyBrightness():
 		''' Returns sky brightness measures in a grid with a given separation 
 		    in degrees and interpolates the result with griddata.'''
 		azseparation  = 30
-		altseparation = 15
+		zdseparation = 15
 		
 		AZdirs  = np.arange(0,360+1,azseparation)
-		ZDdirs = np.arange(0,90+1,altseparation)
+		ZDdirs = np.arange(0,90+1,zdseparation)
 		
 		self.AZgrid,self.ZDgrid = np.meshgrid(AZdirs,ZDdirs)
 		self.ALTgrid = 90.-self.ZDgrid
@@ -74,8 +80,8 @@ class SkyBrightness():
 		def sky_brightness_point(az,zd):
 			alt = 90.-zd
 			fits_region_values = FitsImage.fits_data[\
-				(np.array(ImageCoordinates.altitude_map>=alt-altseparation/2.)*\
-				 np.array(ImageCoordinates.altitude_map<alt+altseparation/2.)\
+				(np.array(ImageCoordinates.altitude_map>=alt-zdseparation/2.)*\
+				 np.array(ImageCoordinates.altitude_map<alt+zdseparation/2.)\
 				)*(\
 				(np.array(ImageCoordinates.azimuth_map>=az-azseparation/2.)*\
 				 np.array(ImageCoordinates.azimuth_map<az+azseparation/2.)\
@@ -87,39 +93,43 @@ class SkyBrightness():
 			
 			return(self.sky_brightness_region(BouguerFit,ImageInfo,fits_region_values))
 		
+		
 		sky_brightness_list = np.vectorize(sky_brightness_point)
 		self.SBgrid,self.SBgrid_errors = np.array(sky_brightness_list(self.AZgrid,self.ZDgrid))
 		
 		# Once we measured the sky brightness in the image, convert to radians the azimuths
 		self.AZgrid = self.AZgrid*np.pi/180.
-		
-		# Griddata.
-		self.AZgridi,self.ZDgridi = np.mgrid[0:2*np.pi:1000j, 0:75:1000j]
-		self.ALTgridi = 90. - self.ZDgridi
-		
-		coord_reshape = [[self.AZgrid[j][k],self.ZDgrid[j][k]] \
-			for k in xrange(len(self.AZgrid[0])) for j in xrange(len(self.AZgrid))]
-		
-		data_reshape = [ self.SBgrid[j][k] \
-			for k in xrange(len(self.AZgrid[0])) for j in xrange(len(self.AZgrid))]
-		
-		self.SBgridi = sint.griddata(coord_reshape,data_reshape, \
-			(self.AZgridi,self.ZDgridi), method='linear')
 	
-	def measure_in_positions(self):
+	def measure_in_positions(self,FitsImage,ImageInfo,ImageCoordinates,BouguerFit):
 		# Measure Sky Brightness at zenith
-		self.SBzenith = np.median(self.SBgrid[self.ZDgrid==0])
-		self.SBzenith_err = np.max(self.SBgrid_errors[self.ZDgrid==0])
+		try:
+			# If previous grid calculus, then extract from that grid
+			self.SBzenith = np.median(self.SBgrid[self.ZDgrid==0])
+			self.SBzenith_err = np.max(self.SBgrid_errors[self.ZDgrid==0])
+		except:
+			# If not previous grid, calculate manually.
+			zenith_acceptance = 10
+			fits_zenith_region_values = FitsImage.fits_data[\
+				ImageCoordinates.altitude_map>=90-zenith_acceptance]
+			self.SBzenith,self.SBzenith_err = \
+				self.sky_brightness_region(BouguerFit,ImageInfo,fits_zenith_region_values)
 
 
-@profile
 class SkyBrightnessGraph():
 	def __init__(self,SkyBrightness,ImageInfo,BouguerFit):
+		if ImageInfo.skybrightness_path==False:
+			# Don't draw anything
+			print('Skipping SkyBrightness Graph ...')
+			return(None)
+		else:
+			print('Generating Sky Brightness Map ...')
+		
 		self.create_plot()
 		self.plot_labels(SkyBrightness,ImageInfo,BouguerFit)
 		self.define_contours(ImageInfo)
 		self.ticks_and_locators()
-		self.plot_data(SkyBrightness)
+		self.grid_data(SkyBrightness)
+		self.plot_data()
 		self.color_bar()
 		self.show_map(ImageInfo)
 	
@@ -128,12 +138,26 @@ class SkyBrightnessGraph():
 		self.SBfigure = plt.figure(figsize=(8,8))
 		self.SBgraph  = self.SBfigure.add_subplot(111,projection='polar')
 	
-	def plot_data(self,SkyBrightness):
+	def grid_data(self,SkyBrightness):
+		# Griddata.
+		self.AZgridi,self.ZDgridi = np.mgrid[0:2*np.pi:1000j, 0:75:1000j]
+		self.ALTgridi = 90. - self.ZDgridi
+		
+		coord_reshape = [[SkyBrightness.AZgrid[j][k],SkyBrightness.ZDgrid[j][k]] \
+			for k in xrange(len(SkyBrightness.AZgrid[0])) for j in xrange(len(SkyBrightness.AZgrid))]
+		
+		data_reshape = [ SkyBrightness.SBgrid[j][k] \
+			for k in xrange(len(SkyBrightness.AZgrid[0])) for j in xrange(len(SkyBrightness.AZgrid))]
+		
+		self.SBgridi = sint.griddata(coord_reshape,data_reshape, \
+			(self.AZgridi,self.ZDgridi), method='linear')
+	
+	def plot_data(self):
 		''' Returns the graph with data plotted.'''
 		self.SBcontoursf = self.SBgraph.contourf(\
-			SkyBrightness.AZgridi, SkyBrightness.ZDgridi, SkyBrightness.SBgridi, cmap=plt.cm.YlGnBu,levels=self.level_list)
+			self.AZgridi, self.ZDgridi, self.SBgridi, cmap=plt.cm.YlGnBu,levels=self.level_list)
 		self.SBcontours  = self.SBgraph.contour(\
-			SkyBrightness.AZgridi, SkyBrightness.ZDgridi, SkyBrightness.SBgridi,
+			self.AZgridi, self.ZDgridi, self.SBgridi,
 			colors='k',alpha=0.3,levels=self.coarse_level_list)
 		self.SBcontlabel = self.SBgraph.clabel(self.SBcontours,inline=True,fmt='%.1f',fontsize=10)
 		# Limit radius
@@ -201,10 +225,14 @@ class SkyBrightnessGraph():
 	def show_map(self,ImageInfo):
 		def skybrightness_filename(ImageInfo):
 			filename = ImageInfo.skybrightness_path +\
-				"/SkyBrightnessMap_"+ImageInfo.obs_name+"_"+ImageInfo.fits_date+".png"
+				"/SkyBrightnessMap_"+ImageInfo.obs_name+"_"+ImageInfo.fits_date+"_"+\
+				ImageInfo.used_filter+".png"
 			return(filename)
 		
 		#plt.show(self.SBfigure)
-		plt.savefig(skybrightness_filename(ImageInfo),bbox_inches='tight')
+		if ImageInfo.skybrightness_path=="screen":
+			plt.show()
+		else:
+			plt.savefig(skybrightness_filename(ImageInfo),bbox_inches='tight')
 		plt.close('all')
 		

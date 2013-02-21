@@ -41,6 +41,7 @@ except:
 
 class BouguerFit():
 	def __init__(self,ImageInfo,PhotometricCatalog):
+		print('Calculating Instrument zeropoint and extinction ...')
 		self.bouguer_fit(ImageInfo,PhotometricCatalog)
 		if DEBUG==True:
 			print(len(StarCatalog.StarList))
@@ -66,6 +67,11 @@ class BouguerFit():
 				raise
 	
 	def bouguer_plot(self,ImageInfo):
+		if ImageInfo.bouguerfit_path==False:
+			# Don't draw anything
+			print('Skipping BouguerFit Graph')
+			return(None)
+		
 		''' Plot photometric data from the bouguer fit '''
 	
 		xfit = np.linspace(1,astrometry.calculate_airmass(ImageInfo.min_altitude),10)
@@ -95,11 +101,15 @@ class BouguerFit():
 		
 		def bouguer_filename(ImageInfo):
 			filename = ImageInfo.bouguerfit_path +\
-				"/BouguerFit_"+ImageInfo.obs_name+"_"+ImageInfo.fits_date+".png"
+				"/BouguerFit_"+ImageInfo.obs_name+"_"+ImageInfo.fits_date+"_"+\
+				ImageInfo.used_filter+".png"
 			return(filename)
 		
 		# Show or save the bouguer plot
-		plt.savefig(bouguer_filename(ImageInfo),bbox_inches='tight')
+		if ImageInfo.bouguerfit_path=="screen":
+			plt.show()
+		else:
+			plt.savefig(bouguer_filename(ImageInfo),bbox_inches='tight')
 		#show_or_save_bouguerplot(bouguerfigure,ImageInfo,ObsPyephem)
 		plt.close('all')
 
