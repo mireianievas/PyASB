@@ -34,24 +34,29 @@ try:
 	from bouguer_fit import *
 	from sky_brightness import *
 	from skymap_plot import *
+	from write_summary import *
 	import time
 except:
 	print(str(sys.argv[0]) + ': One or more modules missing: please check')
 	raise# SystemExit
 
 
-config_filename  = 'pyasb_config.cfg'
+config_file  = 'pyasb_config.cfg'
 
-
+@profile
 class LoadImage():
-	def __init__(self,InputOptions,input_file=None):
+	def __init__(self,InputOptions,ImageInfo,ConfigOptions,input_file=None):
 		# Load Image file list
 		if input_file == None:
 			input_file = InputOptions.fits_filename_list[0]
 		
 		''' Load fits image '''
 		self.FitsImage = FitsImage(input_file)
-		self.ImageInfo = ImageInfo(self.FitsImage.fits_Header,config_filename)
+		# Local copy of ImageInfo. We will process it further.
+		self.ImageInfo = ImageInfo
+		self.ImageInfo.read_header(self.FitsImage.fits_Header)
+		self.ImageInfo.config_processing_specificfilter(ConfigOptions)
+		
 		try:
 			self.FitsImage.reduce_science_frame(\
 				self.ImageInfo.darkframe,\
@@ -113,6 +118,7 @@ class LoadImage():
 				raise
 				SystemExit
 
+@profile
 class ImageAnalysis():
 	def __init__(self,Image):
 		''' Analize image and perform star astrometry & photometry. 
@@ -125,6 +131,7 @@ class ImageAnalysis():
 		
 		SkyMap_ = SkyMap(self.StarCatalog,Image.ImageInfo,Image.FitsImage)
 
+@profile
 class MultipleImageAnalysis():
 	def __init__(self,InputOptions):
 		class StarCatalog_():
@@ -139,12 +146,13 @@ class MultipleImageAnalysis():
 			self.StarCatalog.StarList.append(EachAnalysis.StarCatalog.StarList)
 			self.StarCatalog.StarList_woPhot.append(EachAnalysis.StarCatalog.StarList_woPhot)
 
+@profile
 class InstrumentCalibration():
 	def __init__(self,ImageInfo,StarCatalog):
 		self.BouguerFit = BouguerFit(ImageInfo,StarCatalog)
 		self.BouguerFit.bouguer_plot(ImageInfo)
 
-
+@profile
 class MeasureSkyBrightness():
 	def __init__(self,FitsImage,ImageInfo,BouguerFit):
 		ImageCoordinates_ = ImageCoordinates(ImageInfo)
@@ -153,73 +161,18 @@ class MeasureSkyBrightness():
 		self.SBzenith = SkyBrightness_.SBzenith
 		self.SBzenith_err = SkyBrightness_.SBzenith_err
 
-# NOTE: The following 2 functions should be moved to separate file or at least to a new class
-# NOTE: Maybe should be rewrite as follows?:
-# 1.) Create the file with the header
-# 2.) Iterative add lines
-
-def summarize_results(InputOptions, Image, ImageAnalysis, InstrumentCalibration, ImageSkyBrightness):
-	sum_date   = str(Image.ImageInfo.fits_date)
-	sum_filter = str(Image.ImageInfo.used_filter)
-	sum_stars  = str(InstrumentCalibration.BouguerFit.Regression.Nstars_initial)
-	sum_gstars = str("%.1f"%float(InstrumentCalibration.BouguerFit.Regression.Nstars_rel))
-	sum_zpoint = \
-		str("%.3f"%float(InstrumentCalibration.BouguerFit.Regression.mean_zeropoint))+' +/- '+\
-		str("%.3f"%float(InstrumentCalibration.BouguerFit.Regression.error_zeropoint))
-	sum_extinction = \
-		str("%.3f"%float(InstrumentCalibration.BouguerFit.Regression.extinction))+' +/- '+\
-		str("%.3f"%float(InstrumentCalibration.BouguerFit.Regression.error_extinction))
-	sum_skybrightness = \
-		str("%.3f"%float(ImageSkyBrightness.SBzenith))+' +/- '+\
-		str("%.3f"%float(ImageSkyBrightness.SBzenith_err))
-		
-	return(sum_date, sum_filter,sum_stars, sum_gstars, sum_zpoint, sum_extinction, sum_skybrightness)
-
-def save_summary_to_file(ImageInfo,summary_content):
-	try:
-		assert(ImageInfo.summary_path!=False)
-	except:
-		print('Skipping write summary to file')
-	else:
-		print('Write summary to file')
-		def summary_filename(ImageInfo):
-			filename = ImageInfo.photometry_table_path +\
-				"/Summary_"+ImageInfo.obs_name+"_"+ImageInfo.fits_date+"_"+\
-				ImageInfo.used_filter+".txt"
-			return(filename)
-		
-		photfile = open(summary_filename(ImageInfo),'w+')
-		
-		content = ['#Date, Filter, Stars, % Good Stars, ZeroPoint, Extinction, SkyBrightness\n']
-		for line in summary_content:
-			content_line = ""
-			for element in line:
-				content_line += element + ", "
-			content_line += "\n"
-			content.append(content_line)
-		
-		photfile.writelines(content)
-		photfile.close()
-
-if __name__ == '__main__':
-	PlatformHelp_ = PlatformHelp()
-	InputOptions = ReadOptions(sys.argv)
-	
-	try:
-		assert(InputOptions.show_help == False)
-	except:
-		# Show help and halt
-		PlatformHelp_.show_help()
-		raise SystemExit
-	
-	for input_file in InputOptions.fits_filename_list:
-		# Load Image into memory & reduce it.
-		Image_ = LoadImage(InputOptions,input_file)
+@profile
+def perform_complete_analysis(InputOptions,ImageInfoCommon,ConfigOptions,input_file):
+	# Load Image into memory & reduce it.
+		# Clean (no leaks)
+		Image_ = LoadImage(InputOptions,ImageInfoCommon,ConfigOptions,input_file)
 		
 		# Look for stars that appears in the catalog, measure their fluxes. Generate starmap.
+		# Clean (no leaks)
 		ImageAnalysis_ = ImageAnalysis(Image_)
 		
 		# Calibrate instrument with image. Generate fit plot.
+		# Clean (no leaks)
 		InstrumentCalibration_ = InstrumentCalibration(\
 			Image_.ImageInfo,
 			ImageAnalysis_.StarCatalog)
@@ -230,9 +183,49 @@ if __name__ == '__main__':
 			Image_.ImageInfo,
 			InstrumentCalibration_.BouguerFit)
 		
-		summary_content = summarize_results(InputOptions, Image_, ImageAnalysis_, \
+		Summary_ = Summary(Image_, InputOptions, ImageAnalysis_, \
 			InstrumentCalibration_, ImageSkyBrightness)
 		
-		save_summary_to_file(Image_.ImageInfo, [summary_content])
 		gc.collect()
+		#print(gc.garbage)
+
+
+
+if __name__ == '__main__':
+	gc.set_debug(gc.DEBUG_STATS)
+	PlatformHelp_ = PlatformHelp()
+	InputOptions = ReadOptions(sys.argv)
+	ConfigOptions_ = ConfigOptions(config_file)
+	ImageInfoCommon = ImageInfo()
+	ImageInfo.config_processing_common(ImageInfoCommon,ConfigOptions_)
+	try:
+		assert(InputOptions.show_help == False)
+	except:
+		# Show help and halt
+		PlatformHelp_.show_help()
+		raise SystemExit
+	
+	for input_file in InputOptions.fits_filename_list:
+		perform_complete_analysis(InputOptions,ImageInfoCommon,ConfigOptions_,input_file)
+	
+	gc.collect()
+	
+	d = dict()
+	for o in gc.get_objects():
+		name = type(o).__name__
+		if name not in d:
+			d[name] = 1
+		else:
+			d[name] += 1
+
+	items = d.items()
+	items.sort(key=lambda x:x[1])
+	debug_file = open("debug_objects.txt",'w')
+	debug_file.close()
+	debug_file = open("debug_objects.txt",'a+')
+	for key, value in items:
+		print key, value
+		debug_file.write(str(key)+",\t"+str(value)+"\n")
+	
+	debug_file.close()
 	

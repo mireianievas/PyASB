@@ -48,7 +48,7 @@ class ReadOptions():
 		
 		self.input_options = input_options
 		try: self.input_options[1]
-		except: no_parameters()
+		except: self.no_parameters()
 		else:
 			while len(self.input_options)>1:
 				input_option = self.options.get(self.input_options[1], lambda : None)()

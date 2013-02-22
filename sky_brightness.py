@@ -165,6 +165,8 @@ class SkyBrightnessGraph():
 		self.plot_data()
 		self.color_bar()
 		self.show_map(ImageInfo)
+		plt.clf()
+		plt.close('all')
 	
 	def create_plot(self):
 		''' Create the figure (empty) with matplotlib '''
@@ -268,6 +270,4 @@ class SkyBrightnessGraph():
 		else:
 			plt.savefig(skybrightness_filename(ImageInfo),bbox_inches='tight')
 		
-		plt.clf()
-		plt.close('all')
 		
