@@ -396,7 +396,8 @@ class Star():
 			"RA1950","DEC1950","azimuth","altit_real","airmass","Xcoord","Ycoord",\
 			"R1","R2","R3","starflux","starflux_err","m25logF","m25logF_unc"]
 		for atribute in list(self.__dict__):
-			if atribute[0]!="_" and atribute not in backup_attributes:
+			#if atribute[0]!="_" and atribute not in backup_attributes:
+			if atribute not in backup_attributes:
 				del vars(self)[atribute]
 	
 

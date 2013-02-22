@@ -171,20 +171,25 @@ class FitsImage(ImageTest):
 			"fits_data","fits_Header","fits_data_notcalibrated"]
 		
 		for atribute in list(self.__dict__):
-			if atribute[0]!="_" and atribute not in backup_attributes:
+			#if atribute[0]!="_" and atribute not in backup_attributes:
+			if atribute not in backup_attributes:
 				del vars(self)[atribute]
+		
 	
 
-class ImageInfo(ImageTest,ConfigOptions):
+class ImageInfo(ImageTest):
 	'''
 	Extract some data from the image header
 	and put it in a class ImageInfo
 	'''
-	def __init__(self,fits_header,config_file):
-		ConfigOptions.__init__(self,config_file)
+	def __init__(self):
+		pass
+	
+	'''def __init__(self,fits_header,ConfigOptions):
 		self.read_header(fits_header)
-		self.config_processing()
-		
+		self.config_processing(ConfigOptions)
+	'''
+	
 	def read_header(self,fits_header):
 		# Date and time in different formats
 		self.fits_date	 = ImageTest.correct_date(fits_header)
@@ -198,19 +203,13 @@ class ImageInfo(ImageTest,ConfigOptions):
 		self.resolution	 = ImageTest.correct_resolution(fits_header)
 		self.used_filter = ImageTest.correct_filter(fits_header)
 	
-	def config_processing(self):
-		filters=["U","B","V","R","I"]
-		
+	def config_processing_common(self,ConfigOptions):
 		# Default values
-		self.zero_points = {"Johnson_"+the_filter:[False,False] for the_filter in filters}
-		self.color_terms = {"Johnson_"+the_filter:[False,False] for the_filter in filters}
-		self.background_levels = {"Johnson_"+the_filter:[False,False] for the_filter in filters}
-		self.flatfield = {"Johnson_"+the_filter:False for the_filter in filters}
 		self.darkframe = False
 		self.biasframe = False
 		
 		# Config processing
-		for option in self.FileOptions:
+		for option in ConfigOptions.FileOptions:
 			if   option[0]=="obs_latitude":             self.latitude=float(option[1])
 			elif option[0]=="obs_longitude":            self.longitude=float(option[1])
 			elif option[0]=="obs_name":                 self.obs_name=str(option[1]).replace(" ","")
@@ -238,27 +237,36 @@ class ImageInfo(ImageTest,ConfigOptions):
 			elif option[0]=="summary_path":             self.summary_path = str(option[1]).replace(" ","")
 			elif option[0]=="darkframe":                self.darkframe=option[1]
 			elif option[0]=="biasframe":                self.biasframe=option[1]
-			else:
-				# Options that depends on the filter
-				for the_filter in xrange(len(filters)):
-					filter_name = "Johnson_"+filters[the_filter]
-					if   option[0]=="zero_point_"+filters[the_filter]:
-						self.zero_points[filter_name] = \
-							[float(option[1].split(",")[0]), float(option[1].split(",")[1])]
-						if "Johnson_"+filters[the_filter] == self.used_filter:
-							self.used_zero_points = self.zero_points[filter_name]
-					elif option[0]=="color_term_"+filters[the_filter]:
-						self.color_terms[filter_name] = \
-							[float(option[1].split(",")[0]), float(option[1].split(",")[1])]
-						if "Johnson_"+filters[the_filter] == self.used_filter:
-							self.sel_color_terms = self.color_terms[filter_name]
-					elif option[0]=="bkgnd_minmax_"+filters[the_filter]:
-						self.background_levels[filter_name] = [float(option[1].split(",")[0]), \
-						float(option[1].split(",")[1])]
-						if "Johnson_"+filters[the_filter] == self.used_filter:
-							self.sel_background_levels = self.background_levels[filter_name]
-					elif option[0]=="flatfield_"+filters[the_filter]:
-						self.flatfield[filter_name] = option[1]
-						if "Johnson_"+filters[the_filter] == self.used_filter:
-							self.sel_flatfield = self.flatfield[filter_name]
+	
+	def config_processing_specificfilter(self,ConfigOptions):
+		filters=["U","B","V","R","I"]
 		
+		# Default values
+		self.zero_points = {"Johnson_"+the_filter:[False,False] for the_filter in filters}
+		self.color_terms = {"Johnson_"+the_filter:[False,False] for the_filter in filters}
+		self.background_levels = {"Johnson_"+the_filter:[False,False] for the_filter in filters}
+		self.flatfield = {"Johnson_"+the_filter:False for the_filter in filters}
+		
+		# Options that depends on the filter
+		for option in ConfigOptions.FileOptions:
+			for the_filter in xrange(len(filters)):
+				filter_name = "Johnson_"+filters[the_filter]
+				if   option[0]=="zero_point_"+filters[the_filter]:
+					self.zero_points[filter_name] = \
+						[float(option[1].split(",")[0]), float(option[1].split(",")[1])]
+					if "Johnson_"+filters[the_filter] == self.used_filter:
+						self.used_zero_points = self.zero_points[filter_name]
+				elif option[0]=="color_term_"+filters[the_filter]:
+					self.color_terms[filter_name] = \
+						[float(option[1].split(",")[0]), float(option[1].split(",")[1])]
+					if "Johnson_"+filters[the_filter] == self.used_filter:
+						self.sel_color_terms = self.color_terms[filter_name]
+				elif option[0]=="bkgnd_minmax_"+filters[the_filter]:
+					self.background_levels[filter_name] = [float(option[1].split(",")[0]), \
+					float(option[1].split(",")[1])]
+					if "Johnson_"+filters[the_filter] == self.used_filter:
+						self.sel_background_levels = self.background_levels[filter_name]
+				elif option[0]=="flatfield_"+filters[the_filter]:
+					self.flatfield[filter_name] = option[1]
+					if "Johnson_"+filters[the_filter] == self.used_filter:
+						self.sel_flatfield = self.flatfield[filter_name]
