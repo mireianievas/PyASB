@@ -218,22 +218,25 @@ class Star():
 		if self.destroy==False:
 			# Real coordinates (from catalog)
 			self.altit_real = float(pyephem_star.alt)*180.0/math.pi
-			self.zdist_real = 90.0-self.altit_real
 			self.azimuth    = float(pyephem_star.az)*180.0/math.pi
 			try:
 				assert(self.altit_real)>float(ImageInfo.min_altitude)
 			except:
 				self.destroy=True
+			else:
+				self.zdist_real = 90.0-self.altit_real
 		
 		if self.destroy==False:
 			# Apparent coordinates in sky. Atmospheric refraction effect.
 			self.altit_appa = atmospheric_refraction(self.altit_real,'dir')
-			self.zdist_appa = 90.0-self.altit_appa
-			self.airmass    = calculate_airmass(self.altit_appa)
 			try:
 				assert(self.altit_appa)>float(ImageInfo.min_altitude)
 			except:
 				self.destroy=True
+			else:
+				self.zdist_appa = 90.0-self.altit_appa
+				self.airmass    = calculate_airmass(self.altit_appa)
+				
 		
 		if self.destroy==False:
 			# Image coordinates
