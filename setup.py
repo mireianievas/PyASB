@@ -9,5 +9,5 @@ setup(name='pyasb',
       author_email='miguelnr89[at]gmail[dot]com',
       license='GPLv3',
       packages=['pyasb'],
-      install_requires=['numpy', 'astropy', 'ephem', 'matplotlib'],
+      install_requires=['numpy', 'scipy', 'astropy', 'ephem', 'matplotlib'],
      )
