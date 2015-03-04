@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 
 '''
 PyASB launcher module
@@ -24,15 +23,10 @@ __maintainer__ = "Miguel Nievas"
 __email__ = "miguelnr89[at]gmail[dot]com"
 __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
-try:
-	import sys
-	import ephem
-	import math
-except:
-	print(str(sys.argv[0]) + ': One or more modules missing: sys,pyephem,math')
-	raise SystemExit
+import ephem
+import math
 
-class ConfigOptions():
+class ConfigOptions(object):
 	def __init__(self,config_file):
 		self.FileOptions = []
 		self.read_config_file(config_file)

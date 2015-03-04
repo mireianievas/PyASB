@@ -43,8 +43,8 @@ except:
 
 config_file  = 'pyasb_config.cfg'
 
-@profile
-class LoadImage():
+#@profile
+class LoadImage(object):
 	def __init__(self,InputOptions,ImageInfo,ConfigOptions,input_file=None):
 		# Load Image file list
 		if input_file == None:
@@ -118,8 +118,8 @@ class LoadImage():
 				raise
 				SystemExit
 
-@profile
-class ImageAnalysis():
+#@profile
+class ImageAnalysis(object):
 	def __init__(self,Image):
 		''' Analize image and perform star astrometry & photometry. 
 		    Returns ImageInfo and StarCatalog'''
@@ -131,10 +131,10 @@ class ImageAnalysis():
 		
 		SkyMap_ = SkyMap(self.StarCatalog,Image.ImageInfo,Image.FitsImage)
 
-@profile
-class MultipleImageAnalysis():
+#@profile
+class MultipleImageAnalysis(object):
 	def __init__(self,InputOptions):
-		class StarCatalog_():
+		class StarCatalog_(object):
 			StarList = []
 			StarList_woPhot = []
 		
@@ -146,14 +146,14 @@ class MultipleImageAnalysis():
 			self.StarCatalog.StarList.append(EachAnalysis.StarCatalog.StarList)
 			self.StarCatalog.StarList_woPhot.append(EachAnalysis.StarCatalog.StarList_woPhot)
 
-@profile
-class InstrumentCalibration():
+#@profile
+class InstrumentCalibration(object):
 	def __init__(self,ImageInfo,StarCatalog):
 		self.BouguerFit = BouguerFit(ImageInfo,StarCatalog)
 		self.BouguerFit.bouguer_plot(ImageInfo)
 
-@profile
-class MeasureSkyBrightness():
+#@profile
+class MeasureSkyBrightness(object):
 	def __init__(self,FitsImage,ImageInfo,BouguerFit):
 		ImageCoordinates_ = ImageCoordinates(ImageInfo)
 		SkyBrightness_ = SkyBrightness(FitsImage,ImageInfo,ImageCoordinates_,BouguerFit)
@@ -161,7 +161,7 @@ class MeasureSkyBrightness():
 		self.SBzenith = SkyBrightness_.SBzenith
 		self.SBzenith_err = SkyBrightness_.SBzenith_err
 
-@profile
+#@profile
 def perform_complete_analysis(InputOptions,ImageInfoCommon,ConfigOptions,input_file):
 	# Load Image into memory & reduce it.
 		# Clean (no leaks)

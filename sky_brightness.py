@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 
 '''
 Sky Brightness photometry module
@@ -25,20 +24,15 @@ __email__ = "miguelnr89[at]gmail[dot]com"
 __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 
-try:
-	import sys
-	import numpy as np
-	import scipy.interpolate as sint
-	import matplotlib as mpl
-	import matplotlib.pyplot as plt
-	import matplotlib.colors as mpc
-	import matplotlib.patches as mpp
-except:
-	print(str(sys.argv[0]) + ': One or more modules missing: sys, numpy, matplotlib')
-	raise SystemExit
+import numpy as np
+import scipy.interpolate as sint
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import matplotlib.colors as mpc
+import matplotlib.patches as mpp
 
 
-class SkyBrightness():
+class SkyBrightness(object):
 	'''
 	Class with Sky Brightness measure methods.
 	Init requires FitsImage, ImageCoordinates, ImageInfo and Bouguerfit objects.
@@ -148,7 +142,7 @@ class SkyBrightness():
 				self.sky_brightness_region(BouguerFit,ImageInfo,fits_zenith_region_values)
 
 
-class SkyBrightnessGraph():
+class SkyBrightnessGraph(object):
 	def __init__(self,SkyBrightness,ImageInfo,BouguerFit):
 		if ImageInfo.skybrightness_map_path==False:
 			# Don't draw anything

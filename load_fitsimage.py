@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 
 '''
 Load FITS image and header
@@ -23,16 +22,11 @@ __maintainer__ = "Miguel Nievas"
 __email__ = "miguelnr89[at]gmail[dot]com"
 __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
-try:
-	import sys
-	import numpy as np
-	import pyfits
-	from read_config import *
-except:
-	print(str(sys.argv[0])+': One or more modules missing: pyfits, HeaderTest, read_config')
-	raise SystemExit
+import numpy as np
+import pyfits
+from read_config import *
 
-class ImageTest():
+class ImageTest(object):
 	'''Perform some test on the image header and extract information'''
 	
 	@staticmethod

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 
 '''
 Load Catalog file and make PyASB StarCatalog
@@ -27,17 +26,12 @@ __maintainer__ = "Miguel Nievas"
 __email__ = "miguelnr89[at]gmail[dot]com"
 __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
-try:
-	import sys
-	import ephem
-	import math
-	from astrometry import *
-	from skymap_plot import *
-except:
-	print(str(sys.argv[0]) + ': One or more modules missing: pyephem,math,astrometry')
-	raise SystemExit
+import ephem
+import math
+from astrometry import *
+from skymap_plot import *
 
-class Star():
+class Star(object):
 	def __init__(self,StarCatalogLine,FitsImage,ImageInfo,ObsPyephem):
 		''' Takes StarCatalogLine (line from catalog file) and 
 		      FitsImage, ImageInfo and ObsPyephem objects
@@ -404,7 +398,7 @@ class Star():
 				del vars(self)[atribute]
 	
 
-class StarCatalog():
+class StarCatalog(object):
 	''' This class processes the catalog.
 	    Takes FitsImage,ImageInfo,ObsPyephem, returns an object with 
 	    the processed Star list'''
