@@ -23,22 +23,19 @@ __email__ = "miguelnr89[at]gmail[dot]com"
 __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 
-try:
-	import gc
-	import sys
-	from input_options import *
-	from program_help import *
-	from astrometry import *
-	from star_calibration import *
-	from load_fitsimage import *
-	from bouguer_fit import *
-	from sky_brightness import *
-	from skymap_plot import *
-	from write_summary import *
-	import time
-except:
-	print(str(sys.argv[0]) + ': One or more modules missing: please check')
-	raise# SystemExit
+import gc
+import sys
+import time
+
+from pyasb.input_options import *
+from pyasb.program_help import *
+from pyasb.astrometry import *
+from pyasb.star_calibration import *
+from pyasb.load_fitsimage import *
+from pyasb.bouguer_fit import *
+from pyasb.sky_brightness import *
+from pyasb.skymap_plot import *
+from pyasb.write_summary import *
 
 
 config_file  = 'pyasb_config.cfg'
