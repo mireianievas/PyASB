@@ -26,10 +26,10 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 try:
 	import sys
 	import numpy as np
-	import pyfits
+	from astropy.io import fits
 	from read_config import *
 except:
-	print(str(sys.argv[0])+': One or more modules missing: pyfits, HeaderTest, read_config')
+	print(str(sys.argv[0])+': One or more modules missing: astropy, HeaderTest, read_config')
 	raise SystemExit
 
 class ImageTest():
@@ -83,7 +83,7 @@ class FitsImage(ImageTest):
 	def load_science(self,input_file):
 		print('Loading ScienceFrame ['+str(input_file)+'] ...'),
 		try: 
-			file_opened = pyfits.open(input_file)
+			file_opened = fits.open(input_file)
 			self.fits_data   = file_opened[0].data
 			self.fits_Header = file_opened[0].header
 			self.fits_Texp   = float(ImageTest.correct_exposure(self.fits_Header))
@@ -94,7 +94,7 @@ class FitsImage(ImageTest):
 	def load_dark(self,MasterDark):
 		print('Loading MasterDark ...'),
 		try:
-			MasterDark_HDU    = pyfits.open(MasterDark)
+			MasterDark_HDU    = fits.open(MasterDark)
 			self.MasterDark_Data   = MasterDark_HDU[0].data
 			self.MasterDark_Header = MasterDark_HDU[0].header
 			self.MasterDark_Texp   = float(ImageTest.correct_exposure(self.MasterDark_Header))
@@ -104,7 +104,7 @@ class FitsImage(ImageTest):
 	def load_flat(self,MasterFlat):
 		print('Loading MasterFlat ...'),
 		try:
-			MasterFlat_HDU    = pyfits.open(MasterFlat)
+			MasterFlat_HDU    = fits.open(MasterFlat)
 			self.MasterFlat_Data   = MasterFlat_HDU[0].data
 			# Normalize MasterFlat
 			self.MasterFlat_Data = self.MasterFlat_Data / np.mean(self.MasterFlat_Data)
@@ -116,7 +116,7 @@ class FitsImage(ImageTest):
 	def load_bias(self,MasterBias):
 		print('Loading MasterBias ...'),
 		try:
-			MasterBias_HDU    = pyfits.open(MasterBias)
+			MasterBias_HDU    = fits.open(MasterBias)
 			self.MasterBias_Data   = MasterBias_HDU[0].data
 			self.MasterBias_Header = MasterBias_HDU[0].header
 			self.MasterBias_Texp   = float(ImageTest.correct_exposure(self.MasterBias_Header))
