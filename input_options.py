@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 
 '''
 PyASB input options module
@@ -22,13 +21,7 @@ __maintainer__ = "Miguel Nievas"
 __email__ = "miguelnr89[at]gmail[dot]com"
 __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
-try:
-	import sys
-except:
-	print(str(sys.argv[0])+': One or more modules missing: sys')
-	raise SystemExit
-
-class ReadOptions():
+class ReadOptions(object):
 	def __init__(self,input_options):
 		# Lambda: http://docs.python.org/release/2.5.2/tut/node6.html [4.7.5]
 		self.options = { '-h': lambda: 'show_help', '-d': lambda : 'use_date', '-i': lambda : 'use_file', 

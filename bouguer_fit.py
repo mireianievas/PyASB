@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 
 '''
 Star detection module
@@ -26,20 +25,15 @@ __email__ = "miguelnr89[at]gmail[dot]com"
 __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 
-try:
-	import sys
-	import matplotlib.pyplot as plt
-	import matplotlib.colors as mpc
-	import matplotlib.patches as mpp
-	import scipy.stats as stats
-	import math
-	import numpy as np
-	import astrometry
-except:
-	print(str(sys.argv[0])+': One or more modules missing: numpy,scipy,math,matplotlib,astrometry')
-	raise SystemExit
+import matplotlib.pyplot as plt
+import matplotlib.colors as mpc
+import matplotlib.patches as mpp
+import scipy.stats as stats
+import math
+import numpy as np
+import astrometry
 
-class BouguerFit():
+class BouguerFit(object):
 	def __init__(self,ImageInfo,PhotometricCatalog):
 		print('Calculating Instrument zeropoint and extinction ...')
 		self.bouguer_fit(ImageInfo,PhotometricCatalog)
@@ -119,7 +113,7 @@ class BouguerFit():
 		plt.clf()
 		plt.close('all')
 
-class TheilSenRegression():
+class TheilSenRegression(object):
 	# Robust Theil Sen estimator, instead of the classic least-squares.
 	def __init__(self,Xpoints,Ypoints,y0=None,y0err=None,x0=None,x0err=None):
 		assert(len(Xpoints)==len(Ypoints) and len(Ypoints)>2)

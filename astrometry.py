@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 
 '''
 PyASB astrometry functions.
@@ -10,15 +9,6 @@ This module is part of the PyASB project,
 created and maintained by Miguel Nievas [UCM].
 ____________________________
 '''
-
-try:
-	import sys
-	import numpy as np
-	from math import pi,sin,cos,sqrt,atan2,asin
-	import ephem
-except:
-	print(str(sys.argv[0])+': One or more modules missing: numpy,math,ephem')
-	raise SystemExit
 
 __author__ = "Miguel Nievas"
 __copyright__ = "Copyright 2012, PyASB project"
@@ -36,6 +26,11 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 Standalone functions. 
   To be used on single points
 '''
+
+import sys
+import numpy as np
+from math import pi,sin,cos,sqrt,atan2,asin
+import ephem
 
 def horiz2xy(azimuth,altitude,ImageInfo):
 	# Return X,Y position in the image from azimuth/altitude horizontal coord.
@@ -94,7 +89,7 @@ Vectorial functions.
   that match the Image pixels
 '''
 
-class ImageCoordinates():
+class ImageCoordinates(object):
 	def __init__(self,ImageInfo):
 		self.calculate_altaz(ImageInfo)
 	

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 
 '''
 SkyMap module
@@ -27,7 +26,7 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 # 1.) Create the file with the header
 # 2.) Iterative add lines
 
-class Summary():
+class Summary(object):
 	def __init__(self,Image,InputOptions,ImageAnalysis,InstrumentCalibration,ImageSkyBrightness):
 		self.summarize_results(InputOptions, Image, ImageAnalysis,\
 			InstrumentCalibration, ImageSkyBrightness)

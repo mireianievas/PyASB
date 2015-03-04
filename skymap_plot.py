@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 
 '''
 SkyMap module
@@ -23,20 +22,15 @@ __email__ = "miguelnr89[at]gmail[dot]com"
 __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 
-try:
-	import sys
-	from astrometry import *
-	import numpy as np
-	import math
-	import matplotlib.pyplot as plt
-	import matplotlib.colors as mpc
-	import matplotlib.patches as mpp
-	import matplotlib as mpl
-except:
-	print(str(sys.argv[0]) + ': One or more modules missing: matplotlib')
-	raise SystemExit
+from astrometry import *
+import numpy as np
+import math
+import matplotlib.pyplot as plt
+import matplotlib.colors as mpc
+import matplotlib.patches as mpp
+import matplotlib as mpl
 
-class SkyMap():
+class SkyMap(object):
 	'''	SkyMap class '''
 	
 	def __init__(self,StarCatalog,ImageInfo,FitsImage):

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 
 '''
 PyASB help module
@@ -22,13 +21,7 @@ __maintainer__ = "Miguel Nievas"
 __email__ = "miguelnr89[at]gmail[dot]com"
 __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
-try:
-	import sys
-except:
-	print(str(sys.argv[0])+': One or more modules missing: sys')
-	raise SystemExit
-
-class PlatformHelp():
+class PlatformHelp(object):
 	def __init__(self):
 		self.make_title()
 		self.make_welcome()
