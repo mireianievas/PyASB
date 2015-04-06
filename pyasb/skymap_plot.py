@@ -51,7 +51,7 @@ class SkyMap():
 		else:
 			print('Star Map plot ...')
 		
-		stretched_fits_data = self.stretch_logdata(FitsImage.fits_data_notcalibrated,40,99)
+		stretched_fits_data = self.stretch_logdata(FitsImage.fits_data_notcalibrated,30,99)
 		self.define_skymap();
 		self.draw_skymap_data(stretched_fits_data)
 		self.draw_polar_axes()
