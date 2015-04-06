@@ -51,18 +51,22 @@ class SkyMap():
 		else:
 			print('Star Map plot ...')
 		
-		stretched_fits_data = self.stretch_logdata(FitsImage.fits_data_notcalibrated,30,99)
+		stretched_fits_data = self.stretch_data(\
+                        FitsImage.fits_data_notcalibrated,\
+                        ImageInfo.perc_low,ImageInfo.perc_high)
 		self.define_skymap();
 		self.draw_skymap_data(stretched_fits_data)
 		self.draw_polar_axes()
-		for Star in self.StarCatalog.StarList_Det:
+		
+                for Star in self.StarCatalog.StarList_Det:
 			self.annotate_skymap(Star)
 		
                 self.astrometry_solver()
 		self.show_figure()
 	
-	def stretch_logdata(self,fits_data,pmin,pmax):
-		log_fits_data = np.log(fits_data-np.min(fits_data)+1,dtype="float32")
+	def stretch_data(self,fits_data,pmin,pmax):
+		#log_fits_data = np.log(fits_data-np.min(fits_data)+1,dtype="float32")
+		log_fits_data = np.arcsinh(fits_data-np.min(fits_data)+1,dtype="float32")
 		valuemin = np.percentile(log_fits_data,pmin)
 		valuemax = np.percentile(log_fits_data,pmax)
 		stretched_fits_data = log_fits_data.clip(valuemin,valuemax)
@@ -149,8 +153,9 @@ class SkyMap():
                 [_az,_alt,_x,_y] = np.transpose(coords)        # Transpose and split
                 print('Solving equation system')
                 res = minimize(horiz2xy_chi2,[10,0,0,0,0,0],args = (_az,_alt,_x,_y))
+                print("Parameters (radial_factor, azimuth_zeropoint, delta_x, delta_y, lat_offset, lon_offset): ")
                 print(res.x)
-                print(res)
+                print("Success: %s" %res.success)
 
 	def astrometry_solver(self):
 		print(\
@@ -169,6 +174,7 @@ class SkyMap():
 		''' Draw identified stars with image as background'''
 		xpoints_catalog = [Star.Xcoord for Star in self.StarCatalog.StarList_Tot]
 		ypoints_catalog = [Star.Ycoord for Star in self.StarCatalog.StarList_Tot]
+		names_catalog = [Star.name for Star in self.StarCatalog.StarList_Tot]
 		
 		xpoints_phot = [Star.Xcoord for Star in self.StarCatalog.StarList_Det]
 		ypoints_phot = [Star.Ycoord for Star in self.StarCatalog.StarList_Det]
@@ -184,9 +190,17 @@ class SkyMap():
 		self.skyimage.axis([0,self.ImageInfo.resolution[0],0,self.ImageInfo.resolution[1]])
 		information=str(self.ImageInfo.date_string)+" UTC\n"+str(self.ImageInfo.latitude)+5*" "+\
 			str(self.ImageInfo.longitude)+"\n"+self.ImageInfo.used_filter
-		self.skyimage.text(0.005,0.005,information,fontsize='small',color='white',\
+		
+                self.skyimage.text(0.005,0.005,information,fontsize='small',color='white',\
 			transform = self.skyimage.transAxes,backgroundcolor=(0,0,0,0.75))
-		self.skyimage.legend(('In catalog','Detected'),'upper right')
+		
+                for k in xrange(len(names_catalog)):
+                    self.skyimage.annotate(\
+                        names_catalog[k],xy=(xpoints_catalog[k],ypoints_catalog[k]), \
+                        xycoords='data',xytext=(0, 3),\
+			textcoords='offset points',fontsize=8,alpha=0.8)
+		
+                self.skyimage.legend(('In catalog','Detected'),loc='upper right')
 	
 	def draw_polar_axes(self):
 		''' Draws meridian and altitude isolines. '''
@@ -232,14 +246,17 @@ class SkyMap():
 		# Draw identified stars and measuring circ<les.
 		# Annotate HD catalog code and Magnitude for each star.
 		self.skyimage.scatter(Star.Xcoord,Star.Ycoord,marker='x',c='r',alpha=0.2,label='Identified stars')
-		self.skyimage.add_patch(mpp.Circle((Star.Xcoord,Star.Ycoord),Star.R1,facecolor='none',edgecolor=(0,0,0.8),\
+		self.skyimage.add_patch(mpp.Circle(\
+                        (Star.Xcoord,Star.Ycoord),Star.R1,facecolor='none',edgecolor=(0,0,0.8),\
 			linewidth=1, fill=False, alpha=0.5,label='_nolegend_'))
-		self.skyimage.add_patch(mpp.Circle((Star.Xcoord,Star.Ycoord),Star.R2,facecolor='none',edgecolor=(0,0.8,0),\
+		self.skyimage.add_patch(mpp.Circle(\
+                        (Star.Xcoord,Star.Ycoord),Star.R2,facecolor='none',edgecolor=(0,0.8,0),\
 			linewidth=1, fill=False, alpha=0.5,label='_nolegend_'))
-		self.skyimage.add_patch(mpp.Circle((Star.Xcoord,Star.Ycoord),Star.R3,facecolor='none',edgecolor=(0.8,0,0),\
+		self.skyimage.add_patch(mpp.Circle(\
+                        (Star.Xcoord,Star.Ycoord),Star.R3,facecolor='none',edgecolor=(0.8,0,0),\
 			linewidth=1, fill=False, alpha=0.5,label='_nolegend_'))
-		self.skyimage.annotate(Star.name,xy=(Star.Xcoord,Star.Ycoord), xycoords='data',xytext=(0, 3),\
-			textcoords='offset points',fontsize=8)
+		#self.skyimage.annotate(Star.name,xy=(Star.Xcoord,Star.Ycoord), xycoords='data',xytext=(0, 3),\
+		#	textcoords='offset points',fontsize=8)
 		self.skyimage.annotate(Star.FilterMag,xy=(Star.Xcoord,Star.Ycoord), xycoords='data',xytext=(0,-10),\
 			textcoords='offset points',fontsize=8)
 			

@@ -25,7 +25,7 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 try:
 	import sys,os,inspect
 	import numpy as np
-	import pyfits
+	import astropy.io.fits as pyfits
 	from read_config import *
 	from load_fitsimage import ImageTest
 	from astrometry import pyephem_setup_real, pyephem_setup_common
@@ -81,8 +81,8 @@ class ImageInfo(ImageTest):
 			if   option[0]=="obs_latitude":             self.latitude=float(option[1])
 			elif option[0]=="obs_longitude":            self.longitude=float(option[1])
 			elif option[0]=="obs_name":                 self.obs_name=str(option[1]).replace(" ","")
-			elif option[0]=="latitude_offset":			self.latitude_offset=float(option[1])
-			elif option[0]=="longitude_offset":			self.longitude_offset=float(option[1])
+			elif option[0]=="latitude_offset":	    self.latitude_offset=float(option[1])
+			elif option[0]=="longitude_offset":         self.longitude_offset=float(option[1])
 			elif option[0]=="delta_x":                  self.delta_x=float(option[1])
 			elif option[0]=="delta_y":                  self.delta_y=float(option[1])
 			elif option[0]=="radial_factor":            self.radial_factor=float(option[1])
@@ -93,12 +93,16 @@ class ImageInfo(ImageTest):
 			elif option[0]=="lim_Kendall_tau":          self.lim_Kendall_tau=float(option[1])
 			elif option[0]=="ccd_bits":                 self.ccd_bits=float(option[1])
 			elif option[0]=="ccd_gain":                 self.ccd_gain=float(option[1])
-			elif option[0]=="read_noise":               self.read_noise=float(option[1])
+
+			elif option[0]=="perc_low":                 self.perc_low=float(option[1])
+			elif option[0]=="perc_high":                self.perc_high=float(option[1])
+			
+                        elif option[0]=="read_noise":               self.read_noise=float(option[1])
 			elif option[0]=="thermal_noise":            self.thermal_noise=float(option[1])
 			elif option[0]=="max_magnitude":            self.max_magnitude = float(option[1])
 			elif option[0]=="max_star_number":          self.max_star_number = int(option[1])
-			#elif option[0]=="pixel_scale":              self.pixel_scale = float(option[1])           # Can be estimated
-			elif option[0]=="backgroundmap_title":      self.backgroundmap_title = str(option[1])
+                        
+                        elif option[0]=="backgroundmap_title":      self.backgroundmap_title = str(option[1])
 			elif option[0]=="cloudmap_title":           self.cloudmap_title = str(option[1])
 			elif option[0]=="skymap_path":              self.skymap_path = str(option[1]).replace(" ","")
 			elif option[0]=="photometry_table_path":    self.photometry_table_path = str(option[1]).replace(" ","")
@@ -108,8 +112,8 @@ class ImageInfo(ImageTest):
 			elif option[0]=="cloudmap_path":            self.cloudmap_path = str(option[1]).replace(" ","")
 			elif option[0]=="clouddata_path":           self.clouddata_path = str(option[1]).replace(" ","")
 			elif option[0]=="summary_path":             self.summary_path = str(option[1]).replace(" ","")
-			elif option[0]=="darkframe":                self.darkframe=option[1]
-			elif option[0]=="biasframe":                self.biasframe=option[1]
+			elif option[0]=="darkframe":                self.darkframe = str(option[1]).replace(" ","")
+			elif option[0]=="biasframe":                self.biasframe = str(option[1]).replace(" ","")
 	
 	def config_processing_specificfilter(self,ConfigOptions):
 		filters=["U","B","V","R","I"]
@@ -145,7 +149,7 @@ class ImageInfo(ImageTest):
 					if "Johnson_"+filters[the_filter] == self.used_filter:
 						self.sel_background_levels = self.background_levels[filter_name]
 				elif option[0]=="flatfield_"+filters[the_filter]:
-					self.flatfield[filter_name] = option[1]
+					self.flatfield[filter_name] = str(option[1]).replace(" ","")
 					if "Johnson_"+filters[the_filter] == self.used_filter:
 						self.sel_flatfield = self.flatfield[filter_name]
 		

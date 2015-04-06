@@ -79,7 +79,7 @@ class LoadImage(object):
 		self.ImageInfo = ImageInfo
 		self.ImageInfo.read_header(self.FitsImage.fits_Header)
 		self.ImageInfo.config_processing_specificfilter(ConfigOptions)
-		
+	
 		try:
 			self.FitsImage.subtract_corners_background = True
 			self.FitsImage.reduce_science_frame(\
