@@ -177,12 +177,15 @@ class Star():
 			'''
 			
 			self.PhotometricStandard=True
-			if self.isDouble or self.isVariab or self.isBadPhot or self.IncompletePhot: 
-				self.PhotometricStandard = False
-			
+                        # Check few variables
+                        if self.isDouble:       self.PhotometricStandard = False
+                        if self.isVariab:       self.PhotometricStandard = False
+                        if self.isBadPhot:      self.PhotometricStandard = False
+                        if self.IncompletePhot: self.PhotometricStandard = False
+		
 			# Also, if colors are very blue or very red, discard them
-			if self.U_V<0 or self.B_V>1.5:
-				self.PhotometricStandard = False
+                        if self.U_V<0:   self.PhotometricStandard = False
+                        if self.B_V>1.5: self.PhotometricStandard = False
 		
 		self.IncompletePhot = False
 		try:
@@ -197,11 +200,11 @@ class Star():
 			self.B_V       = get_float(CatalogLine[8])
 			self.R_V       = get_float(CatalogLine[9])
 			self.I_V       = get_float(CatalogLine[10])
-			self.isDouble  = bool(len(str(CatalogLine[11]).replace(' ','')))
-			self.isVariab  = bool(len(str(CatalogLine[12]).replace(' ','')))
-			self.r_SpType  = str(CatalogLine[13]).replace(' ','')
-			self.r_SpType  = str(CatalogLine[14])#.replace(' ','')
-			self.isBadPhot = bool(len(str(CatalogLine[15]).replace(' ','')))
+			self.isDouble  = str(CatalogLine[11]).replace(' ','')=="D"
+			self.isVariab  = str(CatalogLine[12]).replace(' ','')=="V"
+			self.r_SpTy    = str(CatalogLine[13]).replace(' ','')
+			self.SpType    = str(CatalogLine[14]).replace(' ','')
+			self.isBadPhot = str(CatalogLine[15]).replace(' ','')=="*"
 			
 			try:
 				# Try to find the common name
@@ -313,8 +316,8 @@ class Star():
 			MF_totl = 1+MF_magn+MF_reso+MF_texp+MF_airm
 			
 			self.R1 = int(ImageInfo.base_radius*MF_totl)
-			self.R2 = self.R1*2
-			self.R3 = self.R1*3
+			self.R2 = self.R1*2.0
+			self.R3 = self.R1*3.5
 		except:
 			self.destroy=True
 	
@@ -434,7 +437,7 @@ class Star():
 		except:
 			self.destroy=True
 	
-	def estimate_centroid(self,iterations=1):
+        def estimate_centroid(self,iterations=1):
 		''' Returns star centroid from a region that contains the star
 		    needs self.R1'''
 		

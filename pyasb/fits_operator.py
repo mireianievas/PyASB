@@ -29,7 +29,7 @@ try:
 	import sys,os,inspect
 	import signal
 	import numpy as np
-	import pyfits
+	import astropy.io.fits as pyfits
 	import datetime
 except:
 	print(str(inspect.stack()[0][2:4][::-1])+': One or more modules missing')

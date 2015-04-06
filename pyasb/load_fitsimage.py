@@ -26,7 +26,7 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 try:
 	import sys,os,inspect
 	import numpy as np
-	import pyfits
+	import astropy.io.fits as pyfits
 	from astrometry import ImageCoordinates
 	from read_config import *
 except:
@@ -152,6 +152,8 @@ class FitsImage(ImageTest):
 		skip_dark = False
 		skip_flat = False
 
+
+                ### Load FLAT Field
 		try:
 			self.load_flat(MasterFlat)
 		except:
@@ -161,6 +163,7 @@ class FitsImage(ImageTest):
 		else:
 			skip_flat = False
 
+                ### Load DARK Frame
 		try:
 			self.load_dark(MasterDark)
 		except:
@@ -225,7 +228,7 @@ class FitsImage(ImageTest):
 			print("Removed: %.2f +/- %.2f counts from measured background" \
 			 %(self.bias_image_median,self.bias_image_err))
 			
-			if ImageInfo.summary_path!=False and ImageInfo.summary_path!='screen':
+			if ImageInfo.summary_path!="False" and ImageInfo.summary_path!='screen':
 				if not os.path.exists(ImageInfo.summary_path):
 					os.makedirs(ImageInfo.summary_path)
 				measured_bias_log = open(ImageInfo.summary_path+'/measured_image_bias.txt','a+')
