@@ -27,15 +27,15 @@ import gc
 import sys
 import time
 
-from pyasb.input_options import *
-from pyasb.program_help import *
-from pyasb.astrometry import *
-from pyasb.star_calibration import *
-from pyasb.load_fitsimage import *
-from pyasb.bouguer_fit import *
-from pyasb.sky_brightness import *
-from pyasb.skymap_plot import *
-from pyasb.write_summary import *
+from input_options import *
+from program_help import *
+from astrometry import *
+from star_calibration import *
+from load_fitsimage import *
+from bouguer_fit import *
+from sky_brightness import *
+from skymap_plot import *
+from write_summary import *
 
 
 config_file = 'pyasb_config.cfg'
