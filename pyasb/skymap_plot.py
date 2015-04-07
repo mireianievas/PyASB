@@ -65,22 +65,24 @@ class SkyMap():
 		'''
 		To be executed at the beginning (no stars)
 		'''
-		self.define_skymap()
-		self.draw_skymap_data()
-		self.skyfigure.canvas.draw()
-		self.skyfigure.canvas.flush_events()
-		plt.show(block=False)
+		if (self.ImageInfo.skymap_path!=False):
+			self.define_skymap()
+			self.draw_skymap_data()
+			self.skyfigure.canvas.draw()
+			self.skyfigure.canvas.flush_events()
+			plt.show(block=False)
 	
 	def complete_skymap(self):
 		''' 
 		To be executed when an astrometric solution is found
 		'''
-		self.draw_catalog_stars()
-		self.draw_detected_stars()
-		self.draw_polar_axes()
-		self.skyfigure.canvas.draw()
-		self.skyfigure.canvas.flush_events()
-		self.show_figure()
+		if (self.ImageInfo.skymap_path!=False):
+			self.draw_catalog_stars()
+			self.draw_detected_stars()
+			self.draw_polar_axes()
+			self.skyfigure.canvas.draw()
+			self.skyfigure.canvas.flush_events()
+			self.show_figure()
 	
 	def set_starcatalog(self,StarCatalog):
 		self.StarCatalog = StarCatalog

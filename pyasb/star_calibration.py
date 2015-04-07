@@ -111,18 +111,19 @@ class Star():
 		 errormsg=' Cannot create the Star region')
 		self.verbose_detection(self.estimate_fits_region_complete,FitsImage,\
 		 errormsg=' Cannot create the Star+Background region')
+		# Optimal aperture photometry
+		self.verbose_detection(\
+		 self.measure_star_fluxes,FitsImage.fits_data,\
+		 errormsg=' Error doing optimal photometry')
+		# Optimal aperture photometry
+		#self.verbose_detection(\
+		# self.optimal_aperture_photometry,ImageInfo,FitsImage.fits_data,\
+		# errormsg=' Error doing optimal photometry')
 	
 	def check_star_issues(self,FitsImage,ImageInfo):
 		# Check if star region is masked
 		self.verbose_detection(self.star_region_is_masked,FitsImage,\
 		 errormsg=' Star is masked')
-		# Optimal aperture photometry
-		#self.verbose_detection(\
-		# self.optimal_aperture_photometry,ImageInfo,FitsImage.fits_data,\
-		# errormsg=' Error doing optimal photometry')
-		self.verbose_detection(\
-		 self.measure_star_fluxes,FitsImage.fits_data,\
-		 errormsg=' Error doing optimal photometry')
 		# Check if star is detectable (with optimal astrometry)
 		self.verbose_detection(self.star_is_detectable,ImageInfo,\
 		 errormsg=' Star is not detectable')

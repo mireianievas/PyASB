@@ -425,6 +425,7 @@ def create_synthetic_image(radialprofile,ImageInfo):
 	sx,sy = np.shape(IC.altitude_map)
 	map_response = scipy.interpolate.splev(90.0-IC.altitude_map.flatten(),tck)
 	map_response = np.array(map_response).reshape(sx,sy)
+        map_response[np.isnan(map_response)] = 1
 	return(map_response)
 
 class FlatField():
