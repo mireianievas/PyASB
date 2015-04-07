@@ -311,14 +311,16 @@ class SkyMap():
 		# Annotate HD catalog code and Magnitude for each star.
 		
 		if (full==False):
-			self.skyimage.scatter(Star.Xcoord,Star.Ycoord,marker='x',c='yellow',alpha=0.2,label='Identified stars')
+			self.skyimage.scatter(Star.Xcoord,Star.Ycoord,\
+                                marker='x',c='yellow',alpha=0.2,label='In catalog')
 			self.skyimage.annotate(\
 				Star.name,xy=(Star.Xcoord,Star.Ycoord), \
 				xycoords='data',xytext=(0, 3),\
 				textcoords='offset points',fontsize=8,alpha=0.8)
 		else:
 			
-			self.skyimage.scatter(Star.Xcoord,Star.Ycoord,marker='+',c='red',alpha=0.2,label='Identified stars')
+			self.skyimage.scatter(Star.Xcoord,Star.Ycoord,\
+                                marker='+',c='red',alpha=0.2,label='Detected')
 			self.skyimage.add_patch(mpp.Circle(\
 				(Star.Xcoord,Star.Ycoord),Star.R1,facecolor='none',edgecolor=(0,0,0.8),\
 				linewidth=1, fill=False, alpha=0.5,label='_nolegend_'))
@@ -333,7 +335,6 @@ class SkyMap():
 			
 	def show_figure(self):
 		self.skyimage.legend(('In catalog','Detected'),loc='upper right')
-		
 		def skymap_filename():
 			filename = self.ImageInfo.skymap_path +\
 				"/Skymap_"+self.ImageInfo.obs_name+"_"+self.ImageInfo.fits_date+"_"+\
