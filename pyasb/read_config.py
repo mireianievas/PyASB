@@ -63,4 +63,3 @@ class ConfigOptions():
 				if raw_config[line][0]!="#":
 					self.add_param_value(raw_config[line])
 
-	
