@@ -65,6 +65,12 @@ class ImageInfo(ImageTest):
 		self.exposure	 = ImageTest.correct_exposure(fits_header)
 		self.resolution	 = ImageTest.correct_resolution(fits_header)
 		self.used_filter = ImageTest.correct_filter(fits_header)
+		
+		# Update radial factor guess
+		try: self.radial_factor
+		except: self.radial_factor = \
+			(np.min(self.resolution)/2 - 10*self.base_radius)\
+			/(180.0*np.sqrt(2)/np.pi)
 	
 	def config_processing_common(self,ConfigOptions,InputOptions):
 		# Default values
@@ -72,49 +78,49 @@ class ImageInfo(ImageTest):
 		self.biasframe = False
 		self.latitude_offset = 0.0
 		self.longitude_offset = 0.0
+		self.delta_x = 0.0
+		self.delta_y = 0.0
+		self.azimuth_zeropoint = 0.0
+		self.calibrate_astrometry = False
+		# A better aprox would be np.min(self.resolution)/(180.0*np.sqrt(2)/np.pi)
+		# but it depends on the image, which has not yet been read.
 		
 		for atribute in list(InputOptions.__dict__):
 			ConfigOptions.FileOptions.append([atribute,vars(InputOptions)[atribute]])
 		
 		# Config processing
+		
+		list_float_options = [\
+			"latitude_offset", "longitude_offset", "delta_x", "delta_y",\
+			"radial_factor", "azimuth_zeropoint", "min_altitude", \
+			"base_radius", "baseflux_detectable", "lim_Kendall_tau",\
+			"ccd_bits", "ccd_gain", "perc_low", "perc_high", "read_noise", \
+			"thermal_noise", "max_magnitude"]
+		
+		list_int_options = [ "max_star_number" ]
+		
+		list_bool_options = [ "calibrate_astrometry" ]
+		
+		list_str_options = [\
+			"obs_name", "backgroundmap_title", "cloudmap_title", "skymap_path",\
+			"photometry_table_path", "bouguerfit_path", "skybrightness_map_path", \
+			"skybrightness_table_path", "cloudmap_path", "clouddata_path", \
+			"summary_path", "darkframe", "biasframe"]
+		
 		for option in ConfigOptions.FileOptions:
-			if   option[0]=="obs_latitude":             self.latitude=float(option[1])
-			elif option[0]=="obs_longitude":            self.longitude=float(option[1])
-			elif option[0]=="obs_name":                 self.obs_name=str(option[1]).replace(" ","")
-			elif option[0]=="latitude_offset":	    self.latitude_offset=float(option[1])
-			elif option[0]=="longitude_offset":         self.longitude_offset=float(option[1])
-			elif option[0]=="delta_x":                  self.delta_x=float(option[1])
-			elif option[0]=="delta_y":                  self.delta_y=float(option[1])
-			elif option[0]=="radial_factor":            self.radial_factor=float(option[1])
-			elif option[0]=="azimuth_zeropoint":        self.azimuth_zeropoint=float(option[1])
-			elif option[0]=="min_altitude":             self.min_altitude=float(option[1])
-			elif option[0]=="base_radius":              self.base_radius=float(option[1])
-			elif option[0]=="baseflux_detectable":      self.baseflux_detectable=float(option[1])
-			elif option[0]=="lim_Kendall_tau":          self.lim_Kendall_tau=float(option[1])
-			elif option[0]=="ccd_bits":                 self.ccd_bits=float(option[1])
-			elif option[0]=="ccd_gain":                 self.ccd_gain=float(option[1])
-
-			elif option[0]=="perc_low":                 self.perc_low=float(option[1])
-			elif option[0]=="perc_high":                self.perc_high=float(option[1])
 			
-                        elif option[0]=="read_noise":               self.read_noise=float(option[1])
-			elif option[0]=="thermal_noise":            self.thermal_noise=float(option[1])
-			elif option[0]=="max_magnitude":            self.max_magnitude = float(option[1])
-			elif option[0]=="max_star_number":          self.max_star_number = int(option[1])
-                        
-                        elif option[0]=="backgroundmap_title":      self.backgroundmap_title = str(option[1])
-			elif option[0]=="cloudmap_title":           self.cloudmap_title = str(option[1])
-			elif option[0]=="skymap_path":              self.skymap_path = str(option[1]).replace(" ","")
-			elif option[0]=="photometry_table_path":    self.photometry_table_path = str(option[1]).replace(" ","")
-			elif option[0]=="bouguerfit_path":          self.bouguerfit_path = str(option[1]).replace(" ","")
-			elif option[0]=="skybrightness_map_path":   self.skybrightness_map_path = str(option[1]).replace(" ","")
-			elif option[0]=="skybrightness_table_path": self.skybrightness_table_path = str(option[1]).replace(" ","")
-			elif option[0]=="cloudmap_path":            self.cloudmap_path = str(option[1]).replace(" ","")
-			elif option[0]=="clouddata_path":           self.clouddata_path = str(option[1]).replace(" ","")
-			elif option[0]=="summary_path":             self.summary_path = str(option[1]).replace(" ","")
-			elif option[0]=="darkframe":                self.darkframe = str(option[1]).replace(" ","")
-			elif option[0]=="biasframe":                self.biasframe = str(option[1]).replace(" ","")
-	
+			if option[0] in list_float_options:
+				setattr(self,option[0],float(option[1]))
+			elif option[0] in list_int_options:
+				setattr(self,option[0],int(option[1]))
+			elif option[0] in list_str_options:
+				setattr(self,option[0],str(option[1]))
+			elif option[0] in list_bool_options:
+				setattr(self,option[0],bool(option[1]))
+			
+			elif option[0]=="obs_latitude" : self.latitude = float(option[1])
+			elif option[0]=="obs_longitude": self.longitude = float(option[1])
+			
 	def config_processing_specificfilter(self,ConfigOptions):
 		filters=["U","B","V","R","I"]
 		

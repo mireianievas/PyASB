@@ -100,84 +100,38 @@ class LoadImage(object):
 	def output_paths(self,InputOptions):
 		# Output file paths (NOTE: should be moved to another file or at least separated function)
 		# Photometric table
-		try: self.ImageInfo.photometry_table_path = InputOptions.photometry_table_path
-		except:
-			try: self.ImageInfo.photometry_table_path
-			except: 
-				self.ImageInfo.photometry_table_path = False
-				#raise
-				#SystemExit
 		
-		# Star Map
-		try: self.ImageInfo.skymap_path = InputOptions.skymap_path
-		except:
-			try: self.ImageInfo.skymap_path
-			except: 
-				self.ImageInfo.skymap_path = False
-				#raise
-				#SystemExit
+		path_list = [\
+			"photometry_table_path", "skymap_path", "bouguerfit_path", \
+			"skybrightness_map_path", "skybrightness_table_path", \
+			"cloudmap_path", "clouddata_path", "summary_path"]
 		
-		# Bouguer Fit
-		try: self.ImageInfo.bouguerfit_path = InputOptions.bouguerfit_path
-		except:
-			try: self.ImageInfo.bouguerfit_path
-			except: 
-				self.ImageInfo.bouguerfit_path = False
-				#raise
-				#SystemExit
+		for path in path_list:
+			try: setattr(self.ImageInfo,path,getattr(InputOptions,path))
+			except:
+				try: getattr(InputOptions,path)
+				except: 
+					setattr(self.ImageInfo,path,False)
 		
-		# SkyBrightness
-		try: self.ImageInfo.skybrightness_map_path = InputOptions.skybrightness_map_path
-		except:
-			try: self.ImageInfo.skybrightness_map_path
-			except: 
-				self.ImageInfo.skybrightness_map_path = False
-				#raise
-				#SystemExit
-		
-		try: self.ImageInfo.skybrightness_table_path = InputOptions.skybrightness_table_path
-		except:
-			try: self.ImageInfo.skybrightness_table_path
-			except: 
-				self.ImageInfo.skybrightness_table_path = False
-				#raise
-				#SystemExit
-		
-		# Cloudmap
-		try: self.ImageInfo.cloudmap_path = InputOptions.cloudmap_path
-		except:
-			try: self.ImageInfo.cloudmap_path
-			except: 
-				self.ImageInfo.cloudmap_path = False
-				#raise
-				#SystemExit
-		
-		try: self.ImageInfo.clouddata_path = InputOptions.clouddata_path
-		except:
-			try: self.ImageInfo.clouddata_path
-			except: 
-				self.ImageInfo.clouddata_path = False
-				#raise
-				#SystemExit
-
-
-		# Summary
-		try: self.ImageInfo.summary_path = InputOptions.summary_path
-		except:
-			try: self.ImageInfo.summary_path
-			except: 
-				self.ImageInfo.summary_path = False
-				#raise
-				#SystemExit
-
 #@profile
 class ImageAnalysis():
 	def __init__(self,Image):
 		''' Analize image and perform star astrometry & photometry. 
 		    Returns ImageInfo and StarCatalog'''
 		Image.ImageInfo.catalog_filename = 'catalog.csv'
-		self.StarCatalog = StarCatalog(Image.FitsImage,Image.ImageInfo)
-		SkyMap_ = SkyMap(self.StarCatalog,Image.ImageInfo,Image.FitsImage)
+		self.StarCatalog = StarCatalog(Image.ImageInfo)
+		
+		if (Image.ImageInfo.calibrate_astrometry==True):
+			TheSkyMap = SkyMap(Image.ImageInfo,Image.FitsImage)
+			TheSkyMap.setup_skymap()
+			TheSkyMap.set_starcatalog(self.StarCatalog)
+			TheSkyMap.astrometry_solver()
+		
+		self.StarCatalog.process_catalog_specific(Image.FitsImage,Image.ImageInfo)
+		TheSkyMap = SkyMap(Image.ImageInfo,Image.FitsImage)
+		TheSkyMap.setup_skymap()
+		TheSkyMap.set_starcatalog(self.StarCatalog)
+		TheSkyMap.complete_skymap()
 
 '''#@profile
 class MultipleImageAnalysis():

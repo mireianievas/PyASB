@@ -54,7 +54,7 @@ def verbose(function, *args):
 		return(out)
 
 class Star():
-	def __init__(self,StarCatalogLine,FitsImage,ImageInfo):
+	def __init__(self,StarCatalogLine,ImageInfo):
 		''' Takes StarCatalogLine (line from catalog file) and 
 		      FitsImage, ImageInfo and ObsPyephem objects
 		    Returns a Star object with photometric and astrometic properties 
@@ -64,16 +64,23 @@ class Star():
 		self.cold_pixels=False
 		self.masked=False
 		self.to_be_masked=False
-		
+		self.camera_independent_astrometry(StarCatalogLine,ImageInfo)
+	
+	def camera_independent_astrometry(self,StarCatalogLine,ImageInfo):
 		# Extract stars from Catalog
 		self.verbose_detection(self.from_catalog,StarCatalogLine,\
 		 errormsg=' Error extracting from catalog')
 		# Estimate magnitude on the given image
 		self.verbose_detection(self.magnitude_on_image,ImageInfo,\
 		 errormsg=' Error reading used filter or magnitude>max')
-		# Astrometry for the current star
-		self.verbose_detection(self.star_astrometry,ImageInfo,\
-		 errormsg=' Error performing star astrometry, Star not visible?')
+		# Astrometry for the current star (sky)
+		self.verbose_detection(self.star_astrometry_sky,ImageInfo,\
+		 errormsg=' Error performing star astrometry (sky), Star not visible?')
+	
+	def camera_dependent_astrometry(self,FitsImage,ImageInfo):
+		# Astrometry for the current star (image)
+		self.verbose_detection(self.star_astrometry_image,ImageInfo,\
+		 errormsg=' Error performing star astrometry (image)')
 		# Estimate radius to do the aperture photometry
 		self.verbose_detection(self.photometric_radius,ImageInfo,\
 		 errormsg=' Error generating photometric radius')
@@ -82,6 +89,8 @@ class Star():
 		 errormsg=' Cannot create the Star region')
 		self.verbose_detection(self.estimate_fits_region_complete,FitsImage,\
 		 errormsg=' Cannot create the Star+Background region')
+	
+	def camera_dependent_photometry(self,FitsImage,ImageInfo):
 		# Measure fluxes
 		self.verbose_detection(self.measure_star_fluxes,FitsImage.fits_data,\
 		 errormsg=' Error measuring fluxes')
@@ -102,12 +111,17 @@ class Star():
 		 errormsg=' Cannot create the Star region')
 		self.verbose_detection(self.estimate_fits_region_complete,FitsImage,\
 		 errormsg=' Cannot create the Star+Background region')
+	
+	def check_star_issues(self,FitsImage,ImageInfo):
 		# Check if star region is masked
 		self.verbose_detection(self.star_region_is_masked,FitsImage,\
 		 errormsg=' Star is masked')
 		# Optimal aperture photometry
+		#self.verbose_detection(\
+		# self.optimal_aperture_photometry,ImageInfo,FitsImage.fits_data,\
+		# errormsg=' Error doing optimal photometry')
 		self.verbose_detection(\
-		 self.optimal_aperture_photometry,ImageInfo,FitsImage.fits_data,\
+		 self.measure_star_fluxes,FitsImage.fits_data,\
 		 errormsg=' Error doing optimal photometry')
 		# Check if star is detectable (with optimal astrometry)
 		self.verbose_detection(self.star_is_detectable,ImageInfo,\
@@ -122,7 +136,7 @@ class Star():
 			try: self.append_to_star_mask(FitsImage)
 			except: print(str(inspect.stack()[0][2:4][::-1])+' Cannot add star to mask')
 		
-		
+	def clear_objects(self):
 		if DEBUG==True:
 			print('Clearing Object')
 		self.__clear__()
@@ -249,7 +263,7 @@ class Star():
 		except:
 			self.destroy=True
 	
-	def star_astrometry(self,ImageInfo):
+	def star_astrometry_sky(self,ImageInfo):
 		''' Perform astrometry. Returns (if star is visible and well defined) its position on the sky and image'''
 		
 		ObsPyephem = pyephem_setup_real(ImageInfo)
@@ -292,7 +306,8 @@ class Star():
 			else:
 				self.zdist_appa = 90.0-self.altit_appa
 				self.airmass    = calculate_airmass(self.altit_appa)
-		
+	
+	def star_astrometry_image(self,ImageInfo):
 		if self.destroy==False:			
 			# Get the X,Y image coordinates
 			XYCoordinates = horiz2xy(self.azimuth,self.altit_appa,ImageInfo)
@@ -520,12 +535,13 @@ class StarCatalog():
 	    Takes FitsImage,ImageInfo,ObsPyephem, returns an object with 
 	    the processed Star list'''
 	
-	def __init__(self,FitsImage,ImageInfo):
+	def __init__(self,ImageInfo):
 		print('Creating Star Catalog ...')
 		self.load_catalog_file(ImageInfo.catalog_filename)
 		print('Star processing ...')
-		self.process_catalog(FitsImage,ImageInfo)
-		self.save_to_file(ImageInfo)
+		self.process_catalog_general(ImageInfo)
+		#self.process_catalog(FitsImage,ImageInfo)
+		#self.save_to_file(ImageInfo)
 		
 	
 	def load_catalog_file(self,catalog_filename):
@@ -564,36 +580,46 @@ class StarCatalog():
 		else:
 			print('File '+str(catalog_filename)+' opened correctly.')
 	
-	def process_catalog(self,FitsImage,ImageInfo):
-		'''Create the masked star matrix'''
-		FitsImage.star_mask = np.zeros(np.array(FitsImage.fits_data).shape,dtype=bool)
-		
-		'''Returns the processed catalog. '''
-		self.StarList_Det = []
-		self.StarList_Phot = []
-		self.StarList_Tot = []
+	def process_catalog_general(self,ImageInfo):
+		'''
+		Returns the processed catalog with 
+		all the starts that should be visible.
+		'''
 		
 		try: ImageInfo.max_star_number
 		except: ImageInfo.max_star_number = len(self.CatalogLines)
 		
+		self.StarList_Tot = []
 		for each_star in self.CatalogLines[0:ImageInfo.max_star_number]:
-			PhotometricStar = Star(each_star,FitsImage,ImageInfo)
-			if PhotometricStar.destroy==False:
-				self.StarList_Det.append(PhotometricStar)
-				if PhotometricStar.PhotometricStandard==True:
-					self.StarList_Phot.append(PhotometricStar)
-			
-			try:
-				PhotometricStar.Xcoord
-				PhotometricStar.Ycoord
-			except:
-				pass
-			else:
-				self.StarList_Tot.append(PhotometricStar)
+			TheStar = Star(each_star,ImageInfo)
+			if (TheStar.destroy==False):
+				self.StarList_Tot.append(TheStar)
 		
-		print(" - Total stars: "+str(len(self.StarList_Tot)))
-		print(" - Detected stars: "+str(len(self.StarList_Det)))
-		print(" - With photometry: " +str(len(self.StarList_Phot)))
+		print(" - Total stars: %d" %len(self.StarList_Tot))
+	
+	def process_catalog_specific(self,FitsImage,ImageInfo):
+		'''
+		Returns the processed catalog with 
+		all the starts that are detected.
+		'''
+		
+		#Create the masked star matrix
+		FitsImage.star_mask = np.zeros(np.array(FitsImage.fits_data).shape,dtype=bool)
+		
+		self.StarList_Det = []
+		self.StarList_Phot = []
+		for TheStar in self.StarList_Tot:
+			TheStar.camera_dependent_astrometry(FitsImage,ImageInfo)
+			TheStar.camera_dependent_photometry(FitsImage,ImageInfo)
+			TheStar.check_star_issues(FitsImage,ImageInfo)
+			TheStar.clear_objects()
+			if (TheStar.destroy==False):
+				self.StarList_Det.append(TheStar)
+				if TheStar.PhotometricStandard==True:
+					self.StarList_Phot.append(TheStar)
+		
+		print(" - Detected stars: %d" %len(self.StarList_Det))
+		print(" - With photometry: %d" %len(self.StarList_Phot))
 	
 	def save_to_file(self,ImageInfo):
 		try:
