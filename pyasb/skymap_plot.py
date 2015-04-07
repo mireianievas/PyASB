@@ -155,10 +155,9 @@ class SkyMap():
 			print('Name: %s, Az: %s, Alt: %s' %(self.name,self.azim,self.alti))
 		elif event.key=='p':
 			print('Previous star')
+			self.preliminary_star.remove()
 			self.scatter_stars[-1].remove()
 			self.label_stars[-1].remove()
-			self.skyfigure.canvas.draw()
-			self.skyfigure.canvas.flush_events()
 			self.scatter_stars.pop()
 			self.label_stars.pop()
 			self.identified_stars.pop()
@@ -169,6 +168,8 @@ class SkyMap():
 			px,py = horiz2xy(self.azim,self.alti,self.ImageInfo,derotate=True)
 			self.preliminary_star = \
 				self.skyimage.scatter(px,py,marker='o',c='yellow',alpha=0.5)
+			self.skyfigure.canvas.draw()
+			self.skyfigure.canvas.flush_events()
 			print('Name: %s, Az: %s, Alt: %s' %(self.name,self.azim,self.alti))
 
 		if event.key=='q':
@@ -176,7 +177,7 @@ class SkyMap():
 			self.skyfigure.canvas.mpl_disconnect(self.cid_mouse)
 			self.skyfigure.canvas.mpl_disconnect(self.cid_keyboard)
 			print(self.identified_stars)
-			plt.close(block=False)
+			plt.close()
 		
 		self.astrometry_optimizer(full=(self.star_index>3))
 
