@@ -26,7 +26,7 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 try:
 	import sys,os,inspect
 	from astrometry import *
-	from scipy.ndimage import uniform_filter as denoise
+	#from scipy.ndimage import uniform_filter as denoise
 	import numpy as np
 	import math
 	import matplotlib.pyplot as plt
@@ -253,8 +253,8 @@ class SkyMap():
 	
 	def draw_skymap_data(self):
 		''' Draw image '''
-		self.skyimage.imshow(denoise(self.stretched_fits_data, 5),cmap=mpl.cm.gray)
-		
+		self.skyimage.imshow(self.stretched_fits_data,cmap=mpl.cm.gray)
+
 		self.skyimage.axis([0,self.ImageInfo.resolution[0],0,self.ImageInfo.resolution[1]])
 		information=str(self.ImageInfo.date_string)+" UTC\n"+str(self.ImageInfo.latitude)+5*" "+\
 			str(self.ImageInfo.longitude)+"\n"+self.ImageInfo.used_filter
