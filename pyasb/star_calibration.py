@@ -332,9 +332,9 @@ class Star():
 			'''Returns R1,R2,R3. Needs photometric properties and astrometry.'''
 			MF_magn = 10**(-0.4*self.FilterMag)
 			MF_reso = 0.5*(min(ImageInfo.resolution)/2500)
-			MF_texp = 0.1*ImageInfo.exposure
 			MF_airm = 0.7*self.airmass
-			MF_totl = 1+MF_magn+MF_reso+MF_texp+MF_airm
+                        MF_decl = 0.2*ImageInfo.exposure*(1.-decl/90.)
+			MF_totl = 1+MF_magn+MF_reso+MF_decl+MF_airm
 			
 			self.R1 = int(ImageInfo.base_radius*MF_totl)
 			self.R2 = self.R1*1.5+1
