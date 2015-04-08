@@ -293,11 +293,11 @@ class Star():
 			
 		if self.destroy==False:
 			# The catalog is defined for B1950, get the current coordinates
-			ra  = float(pyephem_star.a_ra)*12./np.pi
-			dec = float(pyephem_star.a_dec)*180./np.pi
+			self.ra  = float(pyephem_star.a_ra)*12./np.pi
+			self.dec = float(pyephem_star.a_dec)*180./np.pi
 			
 			# Get the horizontal coordinates
-			self.azimuth,self.altit_real = eq2horiz(ra,dec,ImageInfo)
+			self.azimuth,self.altit_real = eq2horiz(self.ra,self.dec,ImageInfo)
 			
 			try:
 				assert(self.altit_real)>float(ImageInfo.min_altitude)
@@ -337,7 +337,11 @@ class Star():
 			MF_magn = 10**(-0.4*self.FilterMag)
 			MF_reso = 0.5*(min(ImageInfo.resolution)/2500)
 			MF_airm = 0.7*self.airmass
-                        MF_decl = 0.2*ImageInfo.exposure*(1.-decl/90.)
+                        if (ImageInfo.latitude>=0):
+                            MF_decl = 0.2*ImageInfo.exposure*abs(1.-self.dec/90.)
+                        else:
+                            MF_decl = 0.2*ImageInfo.exposure*abs(1.+self.dec/90.)
+                        
 			MF_totl = 1+MF_magn+MF_reso+MF_decl+MF_airm
 			
 			self.R1 = int(ImageInfo.base_radius*MF_totl)
