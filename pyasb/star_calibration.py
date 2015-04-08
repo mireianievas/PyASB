@@ -89,6 +89,14 @@ class Star():
 		 errormsg=' Cannot create the Star region')
 		self.verbose_detection(self.estimate_fits_region_complete,FitsImage,\
 		 errormsg=' Cannot create the Star+Background region')
+		# Measure fluxes
+		self.verbose_detection(self.measure_star_fluxes,FitsImage.fits_data,\
+		 errormsg=' Error measuring fluxes')
+		# Estimate centroid
+                self.verbose_detection(self.estimate_fits_region_centroid,FitsImage,\
+                 errormsg=' Cannot create the Star+SecurityRing region')
+                self.verbose_detection(self.estimate_centroid,coarse=True,\
+                 errormsg=' Star centroid calculated')
 	
 	def camera_dependent_photometry(self,FitsImage,ImageInfo):
 		# Measure fluxes
@@ -103,9 +111,6 @@ class Star():
 		# Check cold pixels
 		self.verbose_detection(self.star_has_cold_pixels,ImageInfo,\
 		 errormsg=' Star has cold pixels')
-		# Estimate centroid
-		self.verbose_detection(self.estimate_centroid,ImageInfo,\
-		 errormsg=' Star centroid calculated')
 		# Update regions with new improved centroid.
 		self.verbose_detection(self.estimate_fits_region_star,FitsImage,\
 		 errormsg=' Cannot create the Star region')
@@ -332,8 +337,8 @@ class Star():
 			MF_totl = 1+MF_magn+MF_reso+MF_texp+MF_airm
 			
 			self.R1 = int(ImageInfo.base_radius*MF_totl)
-			self.R2 = self.R1*2.0
-			self.R3 = self.R1*3.5
+			self.R2 = self.R1*1.5+1
+			self.R3 = self.R1*3.0+2
 		except:
 			self.destroy=True
 	
@@ -362,6 +367,21 @@ class Star():
 			 int(self.Xcoord + self.R3 + 0.5))] \
 			for y in xrange(int(self.Ycoord - self.R3 + 0.5),\
 			 int(self.Ycoord + self.R3 + 0.5))]
+	
+        def estimate_fits_region_centroid(self,FitsImage,coarse=False):
+		''' Return the region that contains the star+background '''
+                if (coarse==True):
+                        self.fits_region_centroid = [[FitsImage.fits_data[y,x] \
+                            for x in xrange(int(self.Xcoord - self.R2 + 0.5),\
+                             int(self.Xcoord + self.R2 + 0.5))] \
+                            for y in xrange(int(self.Ycoord - self.R2 + 0.5),\
+                             int(self.Ycoord + self.R2 + 0.5))]
+                else:
+                        self.fits_region_centroid = [[FitsImage.fits_data[y,x] \
+                            for x in xrange(int(self.Xcoord - self.R1 + 0.5),\
+                             int(self.Xcoord + self.R1 + 0.5))] \
+                            for y in xrange(int(self.Ycoord - self.R1 + 0.5),\
+                             int(self.Ycoord + self.R1 + 0.5))]
 	
 	def measure_star_fluxes(self,fits_data):
 		'''Needs self.Xcoord, self.Ycoord and self.R[1-3] defined
@@ -423,7 +443,7 @@ class Star():
 		''' Return true if star has one or more saturated pixels 
 		    requires a defined self.fits_region_star'''
 		try:
-			assert(np.max(self.fits_region_star_uncalibrated)<(2./3)*2**ImageInfo.ccd_bits)
+			assert(np.max(self.fits_region_star_uncalibrated)<(4./5)*2**ImageInfo.ccd_bits)
 		except:
 			#self.destroy=True
 			self.PhotometricStandard=False
@@ -453,25 +473,19 @@ class Star():
 		except:
 			self.destroy=True
 	
-        def estimate_centroid(self,iterations=1):
+        def estimate_centroid(self):
 		''' Returns star centroid from a region that contains the star
-		    needs self.R1'''
+		    needs self.R2'''
 		
 		try:
-			exponent = 2 # Values > 1 intensify the convergence of the method.
-			xweight = np.array([range(1,len(self.fits_region_complete[0])+1)]*\
-			 len(self.fits_region_complete))
-			yweight = np.array([range(1,len(self.fits_region_complete)+1)]*\
-			 len(self.fits_region_complete[0])).transpose()
-			xcentroid = np.sum(xweight*np.power(\
-			 self.fits_region_complete-self.skyflux,exponent))\
-			 /np.sum(np.power(self.fits_region_complete-\
-			 self.skyflux,exponent))
-			ycentroid = np.sum(yweight*np.power(\
-			 self.fits_region_complete-self.skyflux,exponent))\
-				/np.sum(np.power(self.fits_region_complete-self.skyflux,exponent))
-			self.Xcoord += xcentroid - len(self.fits_region_complete[0])/2
-			self.Ycoord += ycentroid - len(self.fits_region_complete)/2
+                        data = (self.fits_region_centroid - self.skyflux)**2.
+                        h,w=data.shape
+                        x=np.arange(w)
+                        y=np.arange(h)
+                        x1=np.ones((1,h))
+                        y1=np.ones((w,1))
+                        self.Xcoord += (np.dot(np.dot(x1, data), y))/(np.dot(np.dot(x1, data), y1)) -w/2.
+                        self.Ycoord += (np.dot(np.dot(x, data), y1))/(np.dot(np.dot(x1, data), y1)) -h/2.
 		except:
 			self.destroy=True
 	

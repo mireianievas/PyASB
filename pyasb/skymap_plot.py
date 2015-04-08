@@ -217,6 +217,12 @@ class SkyMap():
 			initial=[0,0]
 		
 		res = minimize(horiz2xy_chi2,initial,args = (_az,_alt,_x,_y),tol=1e-3)
+
+                # Fix negative radial factor
+                if (res.x[0]<0):
+                    res.x[0] = -res.x[0]
+                    res.x[1] = 180-res.x[1]
+
 		print("Parameters (radial_factor, azimuth_zeropoint, delta_x, delta_y, lat_offset, lon_offset): ")
 		print(res.x)
 		print("Score [sum(dev^2)] = %.3f" %horiz2xy_chi2(res.x,_az,_alt,_x,_y))
