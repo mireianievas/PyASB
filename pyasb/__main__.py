@@ -128,6 +128,7 @@ class ImageAnalysis():
 			TheSkyMap.astrometry_solver()
 		
 		self.StarCatalog.process_catalog_specific(Image.FitsImage,Image.ImageInfo)
+                self.StarCatalog.save_to_file(Image.ImageInfo)
 		TheSkyMap = SkyMap(Image.ImageInfo,Image.FitsImage)
 		TheSkyMap.setup_skymap()
 		TheSkyMap.set_starcatalog(self.StarCatalog)

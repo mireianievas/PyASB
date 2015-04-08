@@ -69,6 +69,7 @@ class Star():
 	def camera_independent_astrometry(self,StarCatalogLine,ImageInfo):
 		# Extract stars from Catalog
 		self.verbose_detection(self.from_catalog,StarCatalogLine,\
+                 ImageInfo.used_filter,\
 		 errormsg=' Error extracting from catalog')
 		# Estimate magnitude on the given image
 		self.verbose_detection(self.magnitude_on_image,ImageInfo,\
@@ -162,7 +163,7 @@ class Star():
 				if DEBUG==True:
 					print(str(inspect.stack()[0][2:4][::-1])+str(function)+kwargs['errormsg'])
 	
-	def from_catalog(self,CatalogLine):
+	def from_catalog(self,CatalogLine,filter):
 		''' Populate class with properties extracted from catalog:
 		    recno, HDcode, RA1950, DEC1950, Vmag, U_V, B_V, R_V, I_V '''
 		
@@ -203,9 +204,9 @@ class Star():
                         if self.isBadPhot:      self.PhotometricStandard = False
                         if self.IncompletePhot: self.PhotometricStandard = False
 		
-			# Also, if colors are very blue or very red, discard them
-                        if self.U_V<0:   self.PhotometricStandard = False
-                        if self.B_V>1.5: self.PhotometricStandard = False
+			# Also, if colors are too blue or red, discard them
+                        if self.B_V<-1:  self.PhotometricStandard = False
+                        if self.B_V>2.5: self.PhotometricStandard = False
 		
 		self.IncompletePhot = False
 		try:
@@ -216,10 +217,13 @@ class Star():
 			self.RA1950    = coord_pyephem_format(CatalogLine[4])
 			self.DEC1950   = coord_pyephem_format(CatalogLine[5])
 			self.Vmag      = get_float(CatalogLine[6])
-			self.U_V       = get_float(CatalogLine[7])
+                        if (filter=="Johnson_U"): self.U_V = get_float(CatalogLine[7])
+                        else: self.U_V = 0
 			self.B_V       = get_float(CatalogLine[8])
-			self.R_V       = get_float(CatalogLine[9])
-			self.I_V       = get_float(CatalogLine[10])
+                        if (filter=="Johnson_R"): self.I_V = get_float(CatalogLine[9])
+                        else: self.R_V = 0
+                        if (filter=="Johnson_I"): self.I_V = get_float(CatalogLine[10])
+                        else: self.I_V = 0
 			self.isDouble  = str(CatalogLine[11]).replace(' ','')=="D"
 			self.isVariab  = str(CatalogLine[12]).replace(' ','')=="V"
 			self.r_SpTy    = str(CatalogLine[13]).replace(' ','')
@@ -443,7 +447,7 @@ class Star():
 		''' Return true if star has one or more saturated pixels 
 		    requires a defined self.fits_region_star'''
 		try:
-			assert(np.max(self.fits_region_star_uncalibrated)<(4./5)*2**ImageInfo.ccd_bits)
+			assert(np.max(self.fits_region_star_uncalibrated)<0.9*2**ImageInfo.ccd_bits)
 		except:
 			#self.destroy=True
 			self.PhotometricStandard=False
@@ -455,7 +459,9 @@ class Star():
 		''' Return true if star has one or more cold (0 value) pixels 
 		    requires a defined self.fits_region_star'''
 		try:
-			assert(np.max(self.fits_region_star_uncalibrated)>0)
+                        min_region = np.min(self.fits_region_star_uncalibrated)
+                        med_region = np.median(self.fits_region_star_uncalibrated)
+			assert(min_region>0.2*med_region)
 		except:
 			#self.destroy=True
 			self.PhotometricStandard=False
@@ -555,7 +561,6 @@ class StarCatalog():
 		self.load_catalog_file(ImageInfo.catalog_filename)
 		print('Star processing ...')
 		self.process_catalog_general(ImageInfo)
-		#self.process_catalog(FitsImage,ImageInfo)
 		#self.save_to_file(ImageInfo)
 		
 	
