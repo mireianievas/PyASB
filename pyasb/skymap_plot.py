@@ -89,11 +89,13 @@ class SkyMap():
 	
 	def draw_catalog_stars(self):
 		for Star in self.StarCatalog.StarList_Tot:
-			self.draw_annotate_star(Star, full=False)
+			self.draw_annotate_star(Star, type=0)
 	
 	def draw_detected_stars(self):
 		for Star in self.StarCatalog.StarList_Det:
-			self.draw_annotate_star(Star, full=True)
+			self.draw_annotate_star(Star, type=1)
+		for Star in self.StarCatalog.StarList_Phot:
+			self.draw_annotate_star(Star, type=2)
 	
 	def stretch_data(self,fits_data,pmin,pmax):
 		#log_fits_data = np.log(fits_data-np.min(fits_data)+1,dtype="float32")
@@ -312,27 +314,25 @@ class SkyMap():
 				alpha=0.2,
 				fontsize=10)
 		
-	def draw_annotate_star(self,Star,full=False):
+	def draw_annotate_star(self,Star,type=0):
 		# Draw identified stars and measuring circles.
 		# Annotate HD catalog code and Magnitude for each star.
 		
-		if (full==False):
+		if(type==0):
 			self.skyimage.scatter(Star.Xcoord,Star.Ycoord,\
-                                marker='x',c='yellow',alpha=0.2,label='In catalog')
+                                marker='+',c='red',alpha=0.2,label='Catalog')
 			self.skyimage.annotate(\
 				Star.name,xy=(Star.Xcoord,Star.Ycoord), \
 				xycoords='data',xytext=(0, 3),\
 				textcoords='offset points',fontsize=8,alpha=0.8)
-		else:
-			
-			self.skyimage.scatter(Star.Xcoord,Star.Ycoord,\
-                                marker='+',c='red',alpha=0.2,label='Detected')
+                elif(type==1):
 			self.skyimage.add_patch(mpp.Circle(\
 				(Star.Xcoord,Star.Ycoord),Star.R1,facecolor='none',edgecolor=(0,0,0.8),\
-				linewidth=1, fill=False, alpha=0.5,label='_nolegend_'))
+				linewidth=1, fill=False, alpha=0.5,label='Detected'))
+                elif(type==2):
 			self.skyimage.add_patch(mpp.Circle(\
 				(Star.Xcoord,Star.Ycoord),Star.R2,facecolor='none',edgecolor=(0,0.8,0),\
-				linewidth=1, fill=False, alpha=0.5,label='_nolegend_'))
+				linewidth=1, fill=False, alpha=0.5,label='Photometric'))
 			self.skyimage.add_patch(mpp.Circle(\
 				(Star.Xcoord,Star.Ycoord),Star.R3,facecolor='none',edgecolor=(0.8,0,0),\
 				linewidth=1, fill=False, alpha=0.5,label='_nolegend_'))
@@ -340,7 +340,7 @@ class SkyMap():
 				textcoords='offset points',fontsize=8)
 			
 	def show_figure(self):
-		self.skyimage.legend(('In catalog','Detected'),loc='upper right')
+                #self.skyimage.legend(('Catalog','Detected','Photometric'),loc='upper right')
 		def skymap_filename():
 			filename = self.ImageInfo.skymap_path +\
 				"/Skymap_"+self.ImageInfo.obs_name+"_"+self.ImageInfo.fits_date+"_"+\
