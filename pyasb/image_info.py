@@ -116,7 +116,7 @@ class ImageInfo(ImageTest):
 			elif option[0] in list_str_options:
 				setattr(self,option[0],str(option[1]))
 			elif option[0] in list_bool_options:
-				setattr(self,option[0],bool(option[1]))
+				setattr(self,option[0],bool(option[1] in ["1","True","T","true"]))
 			
 			elif option[0]=="obs_latitude" : self.latitude = float(option[1])
 			elif option[0]=="obs_longitude": self.longitude = float(option[1])
