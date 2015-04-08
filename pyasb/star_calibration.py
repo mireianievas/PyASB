@@ -647,7 +647,7 @@ class StarCatalog():
 	
 	def save_to_file(self,ImageInfo):
 		try:
-			assert(ImageInfo.photometry_table_path!=False)
+			assert(ImageInfo.photometry_table_path!="False")
 		except:
 			print('Skipping write photometric table to file')
 		else:
