@@ -228,7 +228,7 @@ class FitsImage(ImageTest):
 			print("Removed: %.2f +/- %.2f counts from measured background" \
 			 %(self.bias_image_median,self.bias_image_err))
 			
-			if ImageInfo.summary_path!=False and ImageInfo.summary_path!='screen':
+			if ImageInfo.summary_path not in [ False, "False", "false", "F", "screen" ]:
 				if not os.path.exists(ImageInfo.summary_path):
 					os.makedirs(ImageInfo.summary_path)
 				measured_bias_log = open(ImageInfo.summary_path+'/measured_image_bias.txt','a+')

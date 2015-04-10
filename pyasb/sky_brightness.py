@@ -63,13 +63,8 @@ class SkyBrightness():
 		First we estimate the pixel_scale,
 		then calculate the mean sky brightness in the region
 		'''
-
-		num_pixeles = np.size(fits_region_values)
-		azseparation = (limits['az_max']-limits['az_min'])%(360+1e-8) * np.pi/180.
-		zdseparation = np.cos((90-limits['alt_max'])*np.pi/180.)-np.cos((90-limits['alt_min'])*np.pi/180.+1e-8)
-
-		sky_surface = azseparation*zdseparation*(3600*180./np.pi)**2
-		pixel_scale = abs(sky_surface*1./num_pixeles)
+		
+		pixel_scale = (3600**2)/ImageInfo.radial_factor**2
 
 		#sky_flux = 2.5*np.median(fits_region_values)-1.5*np.mean(fits_region_values)
 		sky_flux = np.median(fits_region_values)
