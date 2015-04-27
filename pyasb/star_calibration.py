@@ -430,10 +430,18 @@ class Star():
 			self.skyflux = np.median(self.pixels3)
 			self.skyflux_err = t_skyflux*np.std(self.pixels3)/np.sqrt(np.size(self.pixels3))
 			# Sky background + Star flux
-			totalflux = np.sum(self.pixels1)
+			on_flux  = np.sum(self.pixels1)
+                        off_flux = np.sum(self.pixels3)
 			# Only star flux. 
-			self.starflux = totalflux - np.size(self.pixels1)*self.skyflux
+			self.starflux = on_flux - np.size(self.pixels1)*self.skyflux
 			self.starflux_err = np.sqrt(2)*np.size(self.pixels1)*self.skyflux_err
+                        # LiMa (1983) Significance
+                        alpha = 1.*len(self.pixels1)/len(self.pixels3)
+                        self.lima_sig = np.sqrt(2*(\
+                          on_flux*np.log((1.+alpha)/(alpha)*(1.*on_flux/(on_flux + off_flux)))+\
+                          off_flux*np.log((1.+alpha)*(1.*off_flux/(on_flux+off_flux)))))
+                        if (DEBUG==True):
+                            print("alpha = %.3f, Li&Ma significance = %.2f" %(alpha,self.lima_sig))
 		except:
 			self.destroy=True
 	
@@ -476,10 +484,13 @@ class Star():
 	def star_is_detectable(self,ImageInfo):
 		''' Set a detection limit to remove weak stars'''
 		''' Check if star is detectable '''
-		
+                
 		try:
-			assert(self.starflux>\
-			 ImageInfo.baseflux_detectable*self.starflux_err+1e-10)
+                        assert(self.starflux>0)
+                        assert(self.lima_sig>0)
+                        assert(self.lima_sig>ImageInfo.baseflux_detectable)
+			#assert(self.starflux>\
+			# ImageInfo.baseflux_detectable*self.starflux_err+1e-10)
 		except:
 			self.destroy=True
 	
@@ -647,7 +658,7 @@ class StarCatalog():
 	
 	def save_to_file(self,ImageInfo):
 		try:
-			assert(ImageInfo.photometry_table_path not in [False, "False"])
+			assert(ImageInfo.photometry_table_path not in [False, "False", "false", "F"])
 		except:
 			print('Skipping write photometric table to file')
 		else:
@@ -663,16 +674,13 @@ class StarCatalog():
 				 ', '+str(Star.starflux)+', '+str(Star.starflux_err)+', '+str(Star.m25logF)+\
 				 ', '+str(Star.m25logF_unc)+'\n')
 			
-			if ImageInfo.photometry_table_path == "screen":
+			if (ImageInfo.photometry_table_path == "screen"):
 				print(content)
 			else:
-				def phottable_filename(ImageInfo):
-					filename = str("%s/PhotTable_%s_%s_%s.txt" %(\
-                                                ImageInfo.photometry_table_path,ImageInfo.obs_name,\
-                                                ImageInfo.fits_date,ImageInfo.used_filter))
-					return(filename)
-				
-				photfile = open(phottable_filename(ImageInfo),'w+')
+				phottable_filename = str("%s/PhotTable_%s_%s_%s.txt" %(\
+					ImageInfo.photometry_table_path, ImageInfo.obs_name,\
+					ImageInfo.fits_date,ImageInfo.used_filter))
+				photfile = open(phottable_filename,'w+')
 				photfile.writelines(content)
 				photfile.close()
 			
