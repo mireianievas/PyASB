@@ -647,7 +647,7 @@ class StarCatalog():
 	
 	def save_to_file(self,ImageInfo):
 		try:
-			assert(ImageInfo.photometry_table_path!="False")
+			assert(ImageInfo.photometry_table_path not in [False, "False"])
 		except:
 			print('Skipping write photometric table to file')
 		else:
@@ -667,9 +667,9 @@ class StarCatalog():
 				print(content)
 			else:
 				def phottable_filename(ImageInfo):
-					filename = ImageInfo.photometry_table_path +\
-						"/PhotTable_"+ImageInfo.obs_name+"_"+ImageInfo.fits_date+"_"+\
-						ImageInfo.used_filter+".txt"
+					filename = str("%s/PhotTable_%s_%s_%s.txt" %(\
+                                                ImageInfo.photometry_table_path,ImageInfo.obs_name,\
+                                                ImageInfo.fits_date,ImageInfo.used_filter))
 					return(filename)
 				
 				photfile = open(phottable_filename(ImageInfo),'w+')

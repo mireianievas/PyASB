@@ -108,12 +108,13 @@ class ImageInfo(ImageTest):
 			"summary_path", "darkframe", "biasframe"]
 		
 		for option in ConfigOptions.FileOptions:
-			
 			if option[0] in list_float_options:
 				setattr(self,option[0],float(option[1]))
 			elif option[0] in list_int_options:
 				setattr(self,option[0],int(option[1]))
 			elif option[0] in list_str_options:
+                                while(str(option[1])[0]==" "):  option[1]=option[1][1:]
+                                while(str(option[1])[-1]==" "): option[1]=option[1][:-1]
 				setattr(self,option[0],str(option[1]))
 			elif option[0] in list_bool_options:
 				setattr(self,option[0],bool(option[1] in ["1","True","T","true"]))
