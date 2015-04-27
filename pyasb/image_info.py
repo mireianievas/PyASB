@@ -91,6 +91,7 @@ class ImageInfo(ImageTest):
 		# Config processing
 		
 		list_float_options = [\
+                        "latitude", "longitude", \
 			"latitude_offset", "longitude_offset", "delta_x", "delta_y",\
 			"radial_factor", "azimuth_zeropoint", "min_altitude", \
 			"base_radius", "baseflux_detectable", "lim_Kendall_tau",\
@@ -108,17 +109,18 @@ class ImageInfo(ImageTest):
 			"summary_path", "darkframe", "biasframe"]
 		
 		for option in ConfigOptions.FileOptions:
+		        setattr(self,option[0],option[1])
 			if option[0] in list_float_options:
 				setattr(self,option[0],float(option[1]))
 			elif option[0] in list_int_options:
 				setattr(self,option[0],int(option[1]))
-			elif option[0] in list_str_options:
-                                while(str(option[1])[0]==" "):  option[1]=option[1][1:]
-                                while(str(option[1])[-1]==" "): option[1]=option[1][:-1]
-				setattr(self,option[0],str(option[1]))
+                        elif option[0] in list_str_options:
+                                while (str(option[1])[0]==" "): option[1]=option[1][1:]
+                                while (str(option[1])[-1]==" "): option[1]=option[1][:-1]
+                                if (option[1]=="False"): setattr(self,option[0],False)
+                                else: setattr(self,option[0],str(option[1]))
 			elif option[0] in list_bool_options:
 				setattr(self,option[0],bool(option[1] in ["1","True","T","true"]))
-			
 			elif option[0]=="obs_latitude" : self.latitude = float(option[1])
 			elif option[0]=="obs_longitude": self.longitude = float(option[1])
 			

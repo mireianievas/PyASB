@@ -168,10 +168,21 @@ class InstrumentCalibration():
 class MeasureSkyBrightness():
 	def __init__(self,FitsImage,ImageInfo,BouguerFit):
 		ImageCoordinates_ = ImageCoordinates(ImageInfo)
-		SkyBrightness_ = SkyBrightness(FitsImage,ImageInfo,ImageCoordinates_,BouguerFit)
-		SkyBrightnessGraph_ = SkyBrightnessGraph(SkyBrightness_,ImageInfo,BouguerFit)
-		self.SBzenith = SkyBrightness_.SBzenith
-		self.SBzenith_err = SkyBrightness_.SBzenith_err
+		TheSkyBrightness = SkyBrightness(\
+                        FitsImage,ImageInfo,ImageCoordinates_,BouguerFit)
+		TheSkyBrightnessGraph = SkyBrightnessGraph(\
+                        TheSkyBrightness,ImageInfo,BouguerFit)
+		
+		'''
+		TheSkyBrightness = SkyBrightness(ImageInfo)
+		TheSkyBrightness.load_mask(altitude_cut=10)
+		TheSkyBrightness.load_sky_image(FitsImage)
+		#TheSkyBrightness.calibrate_image(FitsImage,ImageInfo,BouguerFit)
+		TheSkyBrightness.zernike_decomposition(BouguerFit,npoints=5000,order=10)
+		'''
+		
+		self.SBzenith = TheSkyBrightness.SBzenith
+		self.SBzenith_err = TheSkyBrightness.SBzenith_err
 
 #@profile
 def perform_complete_analysis(InputOptions,ImageInfoCommon,ConfigOptions,input_file):
