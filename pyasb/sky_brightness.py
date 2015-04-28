@@ -199,7 +199,7 @@ class SkyBrightnessGraph():
 
     def create_plot(self):
         ''' Create the figure (empty) with matplotlib '''
-        self.SBfigure = plt.figure(figsize=(8,8))
+        self.SBfigure = plt.figure(figsize=(8,7.5))
         self.SBgraph  = self.SBfigure.add_subplot(111,projection='polar')
 
     def grid_data(self,SkyBrightness):
@@ -283,23 +283,20 @@ class SkyBrightnessGraph():
         # Separation between colour bar and graph
         self.SBfigure.subplots_adjust(right=1)
         # Color bar
-        self.SBcolorbar = plt.colorbar(self.SBcontoursf,orientation='vertical',shrink=0.85)
+        self.SBcolorbar = plt.colorbar(self.SBcontoursf,orientation='vertical',pad=0.07,shrink=0.75)
         self.SBfigure.subplots_adjust(right=0.80) # Restore separation
         self.SBcolorbar.set_ticks(self.label_list,update_ticks=self.update_ticks)
         self.SBcolorbar.set_label("mag/arcsec2",rotation="vertical",size="large")
 
     def show_map(self,ImageInfo):
-        def skybrightness_filename(ImageInfo):
-            filename = ImageInfo.skybrightness_map_path +\
-                "/SkyBrightnessMap_"+ImageInfo.obs_name+"_"+ImageInfo.fits_date+"_"+\
-                ImageInfo.used_filter+".png"
-            return(filename)
-
-        #plt.show(self.SBfigure)
         if ImageInfo.skybrightness_map_path=="screen":
             plt.show()
         else:
-            plt.savefig(skybrightness_filename(ImageInfo),bbox_inches='tight')
+            skybrightness_filename = str("%s/SkyBrightnessMap_%s_%s_%s.png" %(\
+                ImageInfo.skybrightness_map_path, ImageInfo.obs_name,\
+                ImageInfo.fits_date, ImageInfo.used_filter))
+            plt.tight_layout(pad=-1.5,rect=[0.1,0.05,1.,0.95])
+            plt.savefig(skybrightness_filename)
 
         #plt.clf()
         #plt.close('all')

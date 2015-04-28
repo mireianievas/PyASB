@@ -165,17 +165,15 @@ class BouguerFit():
             print(inspect.stack()[0][2:4][::-1])
             raise
 
-        def bouguer_filename(ImageInfo):
-            filename = ImageInfo.bouguerfit_path +\
-                "/BouguerFit_"+ImageInfo.obs_name+"_"+ImageInfo.fits_date+"_"+\
-                ImageInfo.used_filter+".png"
-            return(filename)
-
         # Show or save the bouguer plot
         if ImageInfo.bouguerfit_path=="screen":
             plt.show()
         else:
-            plt.savefig(bouguer_filename(ImageInfo),bbox_inches='tight')
+            bouguer_filename = str("%s/BouguerFit_%s_%s_%s.png" %(\
+                ImageInfo.bouguerfit_path, ImageInfo.obs_name,\
+                ImageInfo.fits_date, ImageInfo.used_filter))
+            plt.tight_layout(pad=0)
+            plt.savefig(bouguer_filename,bbox_inches='tight')
 
         #plt.clf()
         #plt.close('all')
