@@ -84,7 +84,7 @@ class CloudCoverage():
                 Image.ImageInfo.clouddata_path!=False or\
                 Image.ImageInfo.cloudmap_path!=False)
         except Exception as e:
-            print(inspect.stack()[0][2:4][::-1])
+            #print(inspect.stack()[0][2:4][::-1])
             print('Skipping cloud coverage detection')
             #print(type(e))
             #print(e)
@@ -170,9 +170,6 @@ class CloudCoverage():
                        ):
                         continue
                     
-                    #print('Star localized')
-                    #Stars_in_field.remove(Star)
-                    
                     if Star.saturated == True: continue
                     elif Star.cold_pixels == True: continue
                     elif Star.masked == True: continue
@@ -205,23 +202,6 @@ class CloudCoverage():
         # Normalization of flux percentages
         PercentageFlux = PercentageFlux/ObservedStars
         
-        '''
-        # The percentage of detected stars on that region
-        self.PercentageStars = \
-            np.array((0+self.ObservedStars*1.0)/(2e-3+self.PredictedStars*1.0))
-        
-        # Cloud coverage
-        self.CloudCoverage = np.clip(1 - (self.PercentageStars*self.PercentageFlux)**0.5,0,1)
-        
-        # The percentage of detected stars on that region
-        self.PercentageStars = np.array(self.ObservedStars*1./self.PredictedStars)
-        
-        # Stretch the data
-        self.CloudCoverage = 1.0-self.PercentageStars
-        #self.CloudCoverage = self.CloudCoverage/0.2
-        self.CloudCoverage[self.CloudCoverage<0.0]=0.0 # Cloudless
-        self.CloudCoverage[self.CloudCoverage>1.0]=1.0 # Overcast
-        '''
         PercentageStars = \
             np.array((0+ObservedStars*1.0)/(1e-5+PredictedStars*1.0))
         
@@ -256,13 +236,10 @@ class CloudCoverage():
             if ImageInfo.clouddata_path == "screen":
                 print(content)
             else:
-                def cloudtable_filename(ImageInfo):
-                    filename = ImageInfo.clouddata_path +\
-                        "/CloudTable_"+ImageInfo.obs_name+"_"+ImageInfo.fits_date+"_"+\
-                        ImageInfo.used_filter+".txt"
-                    return(filename)
-                
-                cloudfile = open(cloudtable_filename(ImageInfo),'w+')
+                cloudtable_filename = str("%s/CloudTable_%s_%s_%s.txt" %(\
+                    ImageInfo.clouddata_path, ImageInfo.obs_name,\
+                    ImageInfo.fits_date,ImageInfo.used_filter))
+                cloudfile = open(cloudtable_filename,'w+')
                 cloudfile.writelines(content)
                 cloudfile.close()
     
@@ -278,7 +255,7 @@ class CloudCoverage():
             print('Output cloudmap')
         
         ''' Create the cloud map '''
-        self.Cloudfigure = plt.figure(figsize=(8,8))
+        self.Cloudfigure = plt.figure(figsize=(8,7.5))
         self.Cloudgraph  = self.Cloudfigure.add_subplot(111,projection='polar')
         
         
@@ -338,7 +315,7 @@ class CloudCoverage():
             self.Cloudfigure.subplots_adjust(right=1)
             # Color bar 
             self.Cloudcolorbar = plt.colorbar(\
-             self.ColorMesh,orientation='vertical',shrink=0.85)
+             self.ColorMesh,orientation='vertical',pad=0.07,shrink=0.75)
             self.Cloudfigure.subplots_adjust(right=0.80) # Restore separation
             #self.ColorMesh.set_clim(0.0,1.0)
             self.Cloudcolorbar.set_ticks(np.arange(0,1+1e-6,0.1))
@@ -362,16 +339,14 @@ class CloudCoverage():
         
         self.Cloudgraph.text(5*np.pi/4,145,unicode(image_information,'utf-8'),fontsize='x-small')
         
-        def cloudmap_filename(ImageInfo):
-            filename = ImageInfo.cloudmap_path +\
-                "/CloudMap_"+ImageInfo.obs_name+"_"+ImageInfo.fits_date+"_"+\
-                ImageInfo.used_filter+".png"
-            return(filename)
-        
         if ImageInfo.cloudmap_path=="screen":
             plt.show()
         else:
-            plt.savefig(cloudmap_filename(ImageInfo),bbox_inches='tight')
+            cloudmap_filename = str("%s/CloudMap_%s_%s_%s.png" %(\
+                ImageInfo.cloudmap_path, ImageInfo.obs_name,\
+                ImageInfo.fits_date, ImageInfo.used_filter))
+            plt.tight_layout(pad=-1.5,rect=[0.1,0.05,1.,0.95])
+            plt.savefig(cloudmap_filename)
         
         #plt.clf()
         #plt.close('all')

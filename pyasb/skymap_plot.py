@@ -70,7 +70,9 @@ class SkyMap():
             self.draw_skymap_data()
             self.skyfigure.canvas.draw()
             self.skyfigure.canvas.flush_events()
-            plt.show(block=False)
+            
+            if (self.ImageInfo.skymap_path=="screen"):
+                plt.show(block=False)
     
     def complete_skymap(self):
         ''' 
@@ -106,7 +108,7 @@ class SkyMap():
     
     def define_skymap(self):
         ''' Create figure and self.skyimage subplot. '''
-        self.skyfigure = plt.figure(figsize=(10,10))
+        self.skyfigure = plt.figure(figsize=(8,8))
         self.skyimage  = self.skyfigure.add_subplot(111)
         self.skyfigure.canvas.draw()#(block=False)
     
@@ -271,7 +273,7 @@ class SkyMap():
         information=str(self.ImageInfo.date_string)+" UTC\n"+str(self.ImageInfo.latitude)+5*" "+\
             str(self.ImageInfo.longitude)+"\n"+self.ImageInfo.used_filter
         
-        self.skyimage.text(0.005,0.005,information,fontsize='small',color='white',\
+        self.skyimage.text(0.010,0.010,information,fontsize='small',color='white',\
             transform = self.skyimage.transAxes,backgroundcolor=(0,0,0,0.75))
         
         plt.draw()
@@ -322,39 +324,45 @@ class SkyMap():
         
         if(type==0):
             self.skyimage.scatter(Star.Xcoord,Star.Ycoord,\
-                                marker='+',c='red',alpha=0.2,label='Catalog')
+                marker='+',c='red',alpha=0.2,label='Catalog')
             self.skyimage.annotate(\
                 Star.name,xy=(Star.Xcoord,Star.Ycoord), \
                 xycoords='data',xytext=(0, 3),\
                 textcoords='offset points',fontsize=8,alpha=0.8)
         elif(type==1):
             self.skyimage.add_patch(mpp.Circle(\
-                (Star.Xcoord,Star.Ycoord),Star.R1,facecolor='none',edgecolor=(0,0,0.8),\
-                linewidth=1, fill=False, alpha=0.5,label='Detected'))
+                (Star.Xcoord,Star.Ycoord),Star.R1,\
+                facecolor='none',edgecolor=(0,0,0.8),\
+                linewidth=1, fill=False, alpha=0.5,\
+                label='Detected'))
         elif(type==2):
             self.skyimage.add_patch(mpp.Circle(\
-                (Star.Xcoord,Star.Ycoord),Star.R2,facecolor='none',edgecolor=(0,0.8,0),\
-                linewidth=1, fill=False, alpha=0.5,label='Photometric'))
+                (Star.Xcoord,Star.Ycoord),Star.R2,\
+                facecolor='none',edgecolor=(0,0.8,0),\
+                linewidth=1, fill=False, alpha=0.5,\
+                label='Photometric'))
             self.skyimage.add_patch(mpp.Circle(\
-                (Star.Xcoord,Star.Ycoord),Star.R3,facecolor='none',edgecolor=(0.8,0,0),\
-                linewidth=1, fill=False, alpha=0.5,label='_nolegend_'))
-            self.skyimage.annotate(Star.FilterMag,xy=(Star.Xcoord,Star.Ycoord), xycoords='data',xytext=(0,-10),\
+                (Star.Xcoord,Star.Ycoord),Star.R3,\
+                facecolor='none',edgecolor=(0.8,0,0),\
+                linewidth=1, fill=False, alpha=0.5,\
+                label='_nolegend_'))
+            self.skyimage.annotate(Star.FilterMag,xy=(Star.Xcoord,Star.Ycoord), \
+                xycoords='data',xytext=(0,-10),\
                 textcoords='offset points',fontsize=8)
             
     def show_figure(self):
-                #self.skyimage.legend(('Catalog','Detected','Photometric'),loc='upper right')
-        def skymap_filename():
-            filename = self.ImageInfo.skymap_path +\
-                "/Skymap_"+self.ImageInfo.obs_name+"_"+self.ImageInfo.fits_date+"_"+\
-                self.ImageInfo.used_filter+".png"
-            return(filename)
-        
+        #self.skyimage.legend(('Catalog','Detected','Photometric'),loc='upper right')
         if self.ImageInfo.skymap_path=="screen":
             plt.show()
             #self.skyfigure.canvas.draw()
             #self.skyfigure.canvas.flush_events()
         else:
-            plt.savefig(skymap_filename(),bbox_inches='tight')
+            skymap_filename = str("%s/SkyMap_%s_%s_%s.png" %(\
+                self.ImageInfo.skymap_path, self.ImageInfo.obs_name,\
+                self.ImageInfo.fits_date, self.ImageInfo.used_filter))
+
+            plt.tight_layout(pad=0)
+            plt.savefig(skymap_filename)
         
         #plt.clf()
         #plt.close('all')

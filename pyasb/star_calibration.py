@@ -94,9 +94,10 @@ class Star():
         self.verbose_detection(self.measure_star_fluxes,FitsImage.fits_data,\
          errormsg=' Error measuring fluxes')
         # Estimate centroid
-        self.verbose_detection(self.estimate_fits_region_centroid,FitsImage,\
+        self.verbose_detection(self.estimate_fits_region_centroid,\
+         FitsImage,True,\
          errormsg=' Cannot create the Star+SecurityRing region')
-        self.verbose_detection(self.estimate_centroid,coarse=True,\
+        self.verbose_detection(self.estimate_centroid,\
          errormsg=' Star centroid calculated')
     
     def camera_dependent_photometry(self,FitsImage,ImageInfo):
@@ -205,8 +206,8 @@ class Star():
             if self.IncompletePhot: self.PhotometricStandard = False
         
             # Also, if colors are too blue or red, discard them
-            if self.B_V<-1:  self.PhotometricStandard = False
-            if self.B_V>2.5: self.PhotometricStandard = False
+            if self.B_V<-1.: self.PhotometricStandard = False
+            if self.B_V>+2.: self.PhotometricStandard = False
         
         self.IncompletePhot = False
         try:
@@ -371,10 +372,12 @@ class Star():
     def estimate_fits_region_complete(self,FitsImage):
         ''' Return the region that contains the star+background '''
         self.fits_region_complete = [[FitsImage.fits_data[y,x] \
-            for x in xrange(int(self.Xcoord - self.R3 + 0.5),\
-             int(self.Xcoord + self.R3 + 0.5))] \
-            for y in xrange(int(self.Ycoord - self.R3 + 0.5),\
-             int(self.Ycoord + self.R3 + 0.5))]
+            for x in xrange(\
+             max(0,int(self.Xcoord - self.R3 + 0.5)),\
+             min(len(FitsImage.fits_data[0]),int(self.Xcoord + self.R3 + 0.5)))] \
+            for y in xrange(\
+             max(0,int(self.Ycoord - self.R3 + 0.5)),\
+             min(len(FitsImage.fits_data),int(self.Ycoord + self.R3 + 0.5)))]
     
     def estimate_fits_region_centroid(self,FitsImage,coarse=False):
         ''' Return the region that contains the star+background '''
@@ -431,7 +434,7 @@ class Star():
             # Each one has its own drawbacks.
             # Mean may include stars (but this is not neccessarily bad, the pixel1
             #  region may include stars too).
-            # Median is less sensitive to stars, thus better background approx.
+            # Median is less sensitive to stars, gives better background approx.
             # Mode is not really the mode, but an approximation based on mean and median.
             #  but its correctness heavily depends on the assumed background dist.
             # Mean over sigma clipped values (preffered) 

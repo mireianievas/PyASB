@@ -69,7 +69,7 @@ class Summary():
         try:
             assert(ImageInfo.summary_path!=False)
         except:
-            print(inspect.stack()[0][2:4][::-1])
+            #print(inspect.stack()[0][2:4][::-1])
             print('Skipping write summary to file')
         else:
             print('Write summary to file')
@@ -84,13 +84,11 @@ class Summary():
             if ImageInfo.summary_path == "screen":
                 print(content)
             else:
-                def summary_filename(ImageInfo):
-                    filename = ImageInfo.summary_path +\
-                        "/Summary_"+ImageInfo.obs_name+"_"+ImageInfo.fits_date+"_"+\
-                        ImageInfo.used_filter+".txt"
-                    return(filename)
-                
-                summaryfile = open(summary_filename(ImageInfo),'w+')
+                summary_filename = str("%s/Summary_%s_%s_%s.txt" %(\
+                    ImageInfo.summary_path, ImageInfo.obs_name,\
+                    ImageInfo.fits_date, ImageInfo.used_filter))
+
+                summaryfile = open(summary_filename,'w+')
                 summaryfile.writelines(content)
                 summaryfile.close()
         
