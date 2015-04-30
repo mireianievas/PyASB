@@ -91,6 +91,10 @@ class FitsImage(ImageTest):
         # Backup original data
         print('Backup original (non-calibrated) data')
         self.fits_data_notcalibrated = np.array(self.fits_data)
+        # Create pixel coordinates matrix
+        self.yy, self.xx = np.mgrid[\
+         :np.shape(self.fits_data)[0],\
+         :np.shape(self.fits_data)[1]]
 
     def load_science(self,input_file):
         print('Loading ScienceFrame ['+str(input_file)+'] ...'),
@@ -155,7 +159,7 @@ class FitsImage(ImageTest):
         skip_flat = False
 
 
-                ### Load FLAT Field
+        ### Load FLAT Field
         try:
             self.load_flat(MasterFlat)
         except:
@@ -165,7 +169,7 @@ class FitsImage(ImageTest):
         else:
             skip_flat = False
 
-                ### Load DARK Frame
+        ### Load DARK Frame
         try:
             self.load_dark(MasterDark)
         except:
@@ -265,7 +269,7 @@ class FitsImage(ImageTest):
 
     def __clear__(self):
         backup_attributes = [\
-            "fits_data","fits_Header","fits_data_notcalibrated"]
+            "xx","yy", "fits_data","fits_Header","fits_data_notcalibrated"]
 
         for atribute in list(self.__dict__):
             #if atribute[0]!="_" and atribute not in backup_attributes:

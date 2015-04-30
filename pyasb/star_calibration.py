@@ -68,8 +68,7 @@ class Star():
     
     def camera_independent_astrometry(self,StarCatalogLine,ImageInfo):
         # Extract stars from Catalog
-        self.verbose_detection(self.from_catalog,StarCatalogLine,\
-                 ImageInfo.used_filter,\
+        self.verbose_detection(self.from_catalog,StarCatalogLine,ImageInfo,\
          errormsg=' Error extracting from catalog')
         # Estimate magnitude on the given image
         self.verbose_detection(self.magnitude_on_image,ImageInfo,\
@@ -85,61 +84,36 @@ class Star():
         # Estimate radius to do the aperture photometry
         self.verbose_detection(self.photometric_radius,ImageInfo,\
          errormsg=' Error generating photometric radius')
-        # Create regions of stars and star+background
-        self.verbose_detection(self.estimate_fits_region_star,FitsImage,\
-         errormsg=' Cannot create the Star region')
-        self.verbose_detection(self.estimate_fits_region_complete,FitsImage,\
-         errormsg=' Cannot create the Star+Background region')
         # Measure fluxes
-        self.verbose_detection(self.measure_star_fluxes,FitsImage.fits_data,\
+        self.verbose_detection(self.measure_star_fluxes,FitsImage,\
          errormsg=' Error measuring fluxes')
         # Estimate centroid
-        self.verbose_detection(self.estimate_fits_region_centroid,\
-         FitsImage,True,\
-         errormsg=' Cannot create the Star+SecurityRing region')
         self.verbose_detection(self.estimate_centroid,\
-         errormsg=' Star centroid calculated')
+         FitsImage,True,\
+         errormsg=' Cannot estimate centroid')
     
     def camera_dependent_photometry(self,FitsImage,ImageInfo):
         # Measure fluxes
-        self.verbose_detection(self.measure_star_fluxes,FitsImage.fits_data,\
+        self.verbose_detection(self.measure_star_fluxes,FitsImage,\
          errormsg=' Error measuring fluxes')
         # Check if star is detectable
         self.verbose_detection(self.star_is_detectable,ImageInfo,\
          errormsg=' Star is not detectable')
+    
+    def check_star_issues(self,FitsImage,ImageInfo):
         # Check star saturation
         self.verbose_detection(self.star_is_saturated,ImageInfo,\
          errormsg=' Star is satured or has hot pixels')
         # Check cold pixels
         self.verbose_detection(self.star_has_cold_pixels,ImageInfo,\
          errormsg=' Star has cold pixels')
-        # Update regions with new improved centroid.
-        self.verbose_detection(self.estimate_fits_region_star,FitsImage,\
-         errormsg=' Cannot create the Star region')
-        self.verbose_detection(self.estimate_fits_region_complete,FitsImage,\
-         errormsg=' Cannot create the Star+Background region')
-        # Optimal aperture photometry
-        self.verbose_detection(\
-         self.measure_star_fluxes,FitsImage.fits_data,\
-         errormsg=' Error doing optimal photometry')
-        # Optimal aperture photometry
-        #self.verbose_detection(\
-        # self.optimal_aperture_photometry,ImageInfo,FitsImage.fits_data,\
-        # errormsg=' Error doing optimal photometry')
-    
-    def check_star_issues(self,FitsImage,ImageInfo):
         # Check if star region is masked
         self.verbose_detection(self.star_region_is_masked,FitsImage,\
          errormsg=' Star is masked')
-        # Check if star is detectable (with optimal astrometry)
-        self.verbose_detection(self.star_is_detectable,ImageInfo,\
-         errormsg=' Star is not detectable')
         # Calculate Bouguer variables
         self.verbose_detection(self.photometry_bouguervar,ImageInfo,\
          errormsg=' Error calculating bouguer variables')
         # Append star to star mask
-        #self.verbose_detection(self.append_to_star_mask,FitsImage,\
-        # errormsg=' Cannot add star to mask')
         if self.to_be_masked==True:
             try: self.append_to_star_mask(FitsImage)
             except: print(str(inspect.stack()[0][2:4][::-1])+' Cannot add star to mask')
@@ -164,7 +138,7 @@ class Star():
                 if DEBUG==True:
                     print(str(inspect.stack()[0][2:4][::-1])+str(function)+kwargs['errormsg'])
     
-    def from_catalog(self,CatalogLine,filter):
+    def from_catalog(self,CatalogLine,ImageInfo):
         ''' Populate class with properties extracted from catalog:
             recno, HDcode, RA1950, DEC1950, Vmag, U_V, B_V, R_V, I_V '''
         
@@ -208,6 +182,7 @@ class Star():
             # Also, if colors are too blue or red, discard them
             if self.B_V<-1.: self.PhotometricStandard = False
             if self.B_V>+2.: self.PhotometricStandard = False
+
         
         self.IncompletePhot = False
         try:
@@ -218,13 +193,16 @@ class Star():
             self.RA1950    = coord_pyephem_format(CatalogLine[4])
             self.DEC1950   = coord_pyephem_format(CatalogLine[5])
             self.Vmag      = get_float(CatalogLine[6])
+            self.B_V       = get_float(CatalogLine[8])
+            
+            filter = ImageInfo.used_filter
             if (filter=="Johnson_U"): self.U_V = get_float(CatalogLine[7])
             else: self.U_V = 0
-            self.B_V       = get_float(CatalogLine[8])
             if (filter=="Johnson_R"): self.R_V = get_float(CatalogLine[9])
             else: self.R_V = 0
             if (filter=="Johnson_I"): self.I_V = get_float(CatalogLine[10])
             else: self.I_V = 0
+
             self.isDouble  = str(CatalogLine[11]).replace(' ','')=="D"
             self.isVariab  = str(CatalogLine[12]).replace(' ','')=="V"
             self.r_SpTy    = str(CatalogLine[13]).replace(' ','')
@@ -336,14 +314,14 @@ class Star():
         try:
             '''Returns R1,R2,R3. Needs photometric properties and astrometry.'''
             MF_magn = 10**(-0.4*self.FilterMag)
-            MF_reso = 0.5*(min(ImageInfo.resolution)/2500)
-            MF_airm = 0.7*self.airmass
+            MF_reso = 0.5*(min(ImageInfo.resolution)/2500.)
+            MF_airm = 0.5*self.airmass
             if (ImageInfo.latitude>=0):
-                MF_decl = 0.2*ImageInfo.exposure*abs(1.-self.dec/90.)
+                MF_decl = 0.05*ImageInfo.exposure*abs(1.-self.dec/90.)
             else:
-                MF_decl = 0.2*ImageInfo.exposure*abs(1.+self.dec/90.)
+                MF_decl = 0.05*ImageInfo.exposure*abs(1.+self.dec/90.)
                         
-            MF_totl = 1+MF_magn+MF_reso+MF_decl+MF_airm
+            MF_totl = 1.+MF_magn+MF_reso+MF_decl+MF_airm
             
             self.R1 = int(ImageInfo.base_radius*MF_totl)
             self.R2 = self.R1*1.5+1
@@ -351,82 +329,27 @@ class Star():
         except:
             self.destroy=True
     
-    def estimate_fits_region_star(self,FitsImage):
-        ''' Return the region that contains the star 
-        (both for calibrated and uncalibrated data)'''
-        self.fits_region_star = [[FitsImage.fits_data[y,x] \
-            for x in xrange(int(self.Xcoord - self.R1 + 0.5),\
-             int(self.Xcoord + self.R1 + 0.5))] \
-            for y in xrange(int(self.Ycoord - self.R1 + 0.5),\
-             int(self.Ycoord + self.R1 + 0.5))]
-        # We will need this to look for saturated pixels.
-        self.fits_region_star_uncalibrated = [[FitsImage.fits_data_notcalibrated[y,x] \
-            for x in xrange(int(self.Xcoord - self.R1 + 0.5),\
-             int(self.Xcoord + self.R1 + 0.5))] \
-            for y in xrange(int(self.Ycoord - self.R1 + 0.5),\
-             int(self.Ycoord + self.R1 + 0.5))]
-        
-        # We have computed the star region. Flag it to be masked
-        self.to_be_masked=True
-    
-    def estimate_fits_region_complete(self,FitsImage):
-        ''' Return the region that contains the star+background '''
-        self.fits_region_complete = [[FitsImage.fits_data[y,x] \
-            for x in xrange(\
-             max(0,int(self.Xcoord - self.R3 + 0.5)),\
-             min(len(FitsImage.fits_data[0]),int(self.Xcoord + self.R3 + 0.5)))] \
-            for y in xrange(\
-             max(0,int(self.Ycoord - self.R3 + 0.5)),\
-             min(len(FitsImage.fits_data),int(self.Ycoord + self.R3 + 0.5)))]
-    
-    def estimate_fits_region_centroid(self,FitsImage,coarse=False):
-        ''' Return the region that contains the star+background '''
-        if (coarse==True):
-            self.fits_region_centroid = [[FitsImage.fits_data[y,x] \
-             for x in xrange(int(self.Xcoord - self.R2 + 0.5),\
-              int(self.Xcoord + self.R2 + 0.5))] \
-             for y in xrange(int(self.Ycoord - self.R2 + 0.5),\
-              int(self.Ycoord + self.R2 + 0.5))]
-        else:
-            self.fits_region_centroid = [[FitsImage.fits_data[y,x] \
-             for x in xrange(int(self.Xcoord - self.R1 + 0.5),\
-              int(self.Xcoord + self.R1 + 0.5))] \
-             for y in xrange(int(self.Ycoord - self.R1 + 0.5),\
-              int(self.Ycoord + self.R1 + 0.5))]
-    
-    def measure_star_fluxes(self,fits_data,background_mode='median'):
+    def measure_star_fluxes(self,FitsImage,background_mode='median'):
         '''Needs self.Xcoord, self.Ycoord and self.R[1-3] defined
            Returns star fluxes'''
         
-        # Pixels in each ring
-        def less_distance(Xi,Yi,reference):
-            # returns True if distance from pixel to the star center is less than a value.
-            # False otherwise
-            return (Xi)**2 + (Yi)**2 <= reference**2
-        
         try:
-            self.pixels1 = [self.fits_region_complete[y][x] \
-                for y in xrange(len(self.fits_region_complete))\
-                for x in xrange(len(self.fits_region_complete[0])) \
-                if less_distance(x-len(self.fits_region_complete)/2.,\
-                 y-len(self.fits_region_complete[0])/2.,self.R1)]
-            
-            self.pixels2 = [self.fits_region_complete[y][x] \
-                for y in xrange(len(self.fits_region_complete))\
-                for x in xrange(len(self.fits_region_complete[0])) \
-                if less_distance(x-len(self.fits_region_complete)/2.,\
-                 y-len(self.fits_region_complete[0])/2.,self.R2) and\
-                not less_distance(x-len(self.fits_region_complete)/2.,\
-                 y-len(self.fits_region_complete[0])/2.,self.R1)]
-            
-            self.pixels3 = [self.fits_region_complete[y][x] \
-                for y in xrange(len(self.fits_region_complete))\
-                for x in xrange(len(self.fits_region_complete[0])) \
-                if less_distance(x-len(self.fits_region_complete)/2.,\
-                 y-len(self.fits_region_complete[0])/2.,self.R3) and\
-                not less_distance(x-len(self.fits_region_complete)/2.,\
-                 y-len(self.fits_region_complete[0])/2.,self.R2)]
-            
+
+            circle = (FitsImage.xx - self.Xcoord) ** 2 + (FitsImage.yy - self.Ycoord) ** 2
+            ring_1 = circle<=self.R1**2
+            ring_2 = circle<=self.R2**2 - ring_1
+            ring_3 = circle<=self.R3**2 - ring_1 - ring_2
+
+            # Calibrated
+            self.pixels1 = FitsImage.fits_data[ring_1]
+            self.pixels2 = FitsImage.fits_data[ring_2]
+            self.pixels3 = FitsImage.fits_data[ring_3]
+
+            # Uncalibrated 
+            self.pixels1_uncal = FitsImage.fits_data_notcalibrated[ring_1]
+            self.pixels2_uncal = FitsImage.fits_data_notcalibrated[ring_2]
+            self.pixels3_uncal = FitsImage.fits_data_notcalibrated[ring_3]
+
             # Sky background flux. t_student 95%.
             t_skyflux = scipy.stats.t.isf(0.025,np.size(self.pixels3))
 
@@ -458,11 +381,18 @@ class Star():
             # Only star flux. 
             self.starflux = on_flux - np.size(self.pixels1)*self.skyflux
             self.starflux_err = np.sqrt(2)*np.size(self.pixels1)*self.skyflux_err
-            # LiMa (1983) Significance
-            alpha = 1.*len(self.pixels1)/len(self.pixels3)
-            self.lima_sig = np.sqrt(2*(\
-             on_flux*np.log((1.+alpha)/(alpha)*(1.*on_flux/(on_flux + off_flux)))+\
-             off_flux*np.log((1.+alpha)*(1.*off_flux/(on_flux+off_flux)))))
+
+            # Flag everything below 5% background as non-detected
+            if (self.starflux < 0.05*np.size(self.pixels1)*self.skyflux):
+                alpha=1
+                self.lima_sig = 0
+            else:
+                # LiMa (1983) Significance
+                alpha = 1.*len(self.pixels1)/len(self.pixels3)
+                self.lima_sig = np.sqrt(2*(\
+                 on_flux*np.log((1.+alpha)/(alpha)*(1.*on_flux/(on_flux + off_flux)))+\
+                 off_flux*np.log((1.+alpha)*(1.*off_flux/(on_flux+off_flux)))))
+
             if (DEBUG==True):
                 print("alpha = %.3f, Li&Ma significance = %.2f" %(alpha,self.lima_sig))
         except:
@@ -475,14 +405,14 @@ class Star():
             for y in xrange(int(self.Ycoord - self.R1 + 0.5),int(self.Ycoord + self.R1 + 0.5)):
                 if FitsImage.star_mask[y][x] == True:
                     self.masked=True
-                    self.destroy = True
-                    return(0)
+                    self.PhotometricStandard = False
+                    #self.destroy = True
 
     def star_is_saturated(self,ImageInfo):
         ''' Return true if star has one or more saturated pixels 
-            requires a defined self.fits_region_star'''
+            requires a defined self.pixels1_uncal'''
         try:
-            assert(np.max(self.fits_region_star_uncalibrated)<0.9*2**ImageInfo.ccd_bits)
+            assert(np.max(self.pixels1_uncal)<0.9*2**ImageInfo.ccd_bits)
         except:
             #self.destroy=True
             self.PhotometricStandard=False
@@ -492,10 +422,10 @@ class Star():
     
     def star_has_cold_pixels(self,ImageInfo):
         ''' Return true if star has one or more cold (0 value) pixels 
-            requires a defined self.fits_region_star'''
+            requires a defined self.pixels1_uncal'''
         try:
-            min_region = np.min(self.fits_region_star_uncalibrated)
-            med_region = np.median(self.fits_region_star_uncalibrated)
+            min_region = np.min(self.pixels1_uncal)
+            med_region = np.median(self.pixels1_uncal)
             assert(min_region>0.2*med_region)
         except:
             #self.destroy=True
@@ -517,12 +447,27 @@ class Star():
         except:
             self.destroy=True
     
-    def estimate_centroid(self):
+    def estimate_centroid(self,FitsImage,coarse=False):
         ''' Returns star centroid from a region that contains the star
             needs self.R2'''
         
+        if (coarse==True):
+            dist=self.R2
+        else:
+            dist=self.R1
+
+        square = np.logical_and(\
+          np.abs(FitsImage.xx - self.Xcoord)<=dist,\
+          np.abs(FitsImage.yy - self.Ycoord)<=dist)
+       
+        h = np.max(np.sum(square,axis=0))
+        w = np.max(np.sum(square,axis=1))
+
+        star_region = FitsImage.fits_data[square]
+        star_region = star_region.reshape((h,w))
+        
         try:
-            data = (self.fits_region_centroid - self.skyflux)**2.
+            data = (star_region - self.skyflux)**2.
             h,w=data.shape
             x=np.arange(w)
             y=np.arange(h)
@@ -533,39 +478,13 @@ class Star():
         except:
             self.destroy=True
     
-    def optimal_aperture_photometry(self,ImageInfo,fits_data):
-        '''
-        Optimize the aperture to minimize uncertainties and assert
-        all flux is contained in R1
-        '''
-        
-        try:
-            radius = (ImageInfo.base_radius+self.R1)/2.
-            iterate = True
-            num_iterations = 0
-            
-            self.starflux = 0
-            while iterate:
-                num_iterations+=1
-                old_starflux = self.starflux
-                self.R1 = radius
-                self.measure_star_fluxes(fits_data)
-                if self.starflux < (1+0.002*num_iterations**2)*old_starflux:
-                    iterate=False
-                else:
-                    radius+=1
-                
-                assert(radius<self.R2)
-        except:
-            self.destroy=True
-    
     def photometry_bouguervar(self,ImageInfo):
         # Calculate parameters used in bouguer law fit
         try:
-            _25logF      = 2.5*np.log10(self.starflux/ImageInfo.exposure)
-            _25logF_unc  = (2.5/np.log(10))*self.starflux_err/self.starflux
-            color_term = ImageInfo.color_terms[ImageInfo.used_filter][0]
-            color_term_err = ImageInfo.color_terms[ImageInfo.used_filter][1]
+            _25logF          = 2.5*np.log10(self.starflux/ImageInfo.exposure)
+            _25logF_unc      = (2.5/np.log(10))*self.starflux_err/self.starflux
+            color_term       = ImageInfo.color_terms[ImageInfo.used_filter][0]
+            color_term_err   = ImageInfo.color_terms[ImageInfo.used_filter][1]
             self.m25logF     = self.FilterMag+_25logF+color_term*self.Color
             self.m25logF_unc = np.sqrt(_25logF_unc**2 + (color_term_err*self.Color)**2)
         except:
