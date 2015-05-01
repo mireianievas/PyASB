@@ -325,7 +325,7 @@ class Star():
             
             self.R1 = int(ImageInfo.base_radius*MF_totl)
             self.R2 = self.R1*1.5+1
-            self.R3 = self.R1*3.0+3
+            self.R3 = self.R1*2.5+3
         except:
             self.destroy=True
     
@@ -334,25 +334,54 @@ class Star():
            Returns star fluxes'''
         
         try:
+            
+            '''
+            ### Using numpy arrays and matrix op. Very Slow
+            square = np.logical_and(\
+              np.abs(FitsImage.xx - self.Xcoord)<=self.R3,\
+              np.abs(FitsImage.yy - self.Ycoord)<=self.R3)
+            
+            xx   = FitsImage.xx[square]
+            yy   = FitsImage.yy[square]
+            data_cal   = FitsImage.fits_data[square]
+            data_uncal = FitsImage.fits_data_notcalibrated[square]
+            
+            circle = (xx - self.Xcoord)**2 + (yy - self.Ycoord)**2
+            ring_1 = circle[0]<=self.R1**2
+            ring_2 = circle[0]<=self.R2**2 - ring_1
+            ring_3 = circle[0]<=self.R3**2 - ring_1 - ring_2
+            
+            '''
+            
+            ### Using slices. 2x-3x Faster
+            ymin = int(self.Ycoord-(self.R3+1))
+            ymax = int(self.Ycoord+(self.R3+1))
+            xmin = int(self.Xcoord-(self.R3+1))
+            xmax = int(self.Xcoord+(self.R3+1))
+            
+            xx   = FitsImage.xx[ymin:ymax,xmin:xmax]
+            yy   = FitsImage.yy[ymin:ymax,xmin:xmax]
+            data_cal   = FitsImage.fits_data[ymin:ymax,xmin:xmax]
+            data_uncal = FitsImage.fits_data_notcalibrated[ymin:ymax,xmin:xmax]
 
-            circle = (FitsImage.xx - self.Xcoord) ** 2 + (FitsImage.yy - self.Ycoord) ** 2
+            circle = (xx - self.Xcoord)**2 + (yy - self.Ycoord)**2
             ring_1 = circle<=self.R1**2
             ring_2 = circle<=self.R2**2 - ring_1
             ring_3 = circle<=self.R3**2 - ring_1 - ring_2
 
             # Calibrated
-            self.pixels1 = FitsImage.fits_data[ring_1]
-            self.pixels2 = FitsImage.fits_data[ring_2]
-            self.pixels3 = FitsImage.fits_data[ring_3]
-
+            self.pixels1 = data_cal[ring_1]
+            self.pixels2 = data_cal[ring_2]
+            self.pixels3 = data_cal[ring_3]
+            
             # Uncalibrated 
-            self.pixels1_uncal = FitsImage.fits_data_notcalibrated[ring_1]
-            self.pixels2_uncal = FitsImage.fits_data_notcalibrated[ring_2]
-            self.pixels3_uncal = FitsImage.fits_data_notcalibrated[ring_3]
-
+            self.pixels1_uncal = data_uncal[ring_1]
+            self.pixels2_uncal = data_uncal[ring_2]
+            self.pixels3_uncal = data_uncal[ring_3]
+            
             # Sky background flux. t_student 95%.
             t_skyflux = scipy.stats.t.isf(0.025,np.size(self.pixels3))
-
+            
             # 4 possible background estimators. Mean, Median and a Mode approx.
             # Each one has its own drawbacks.
             # Mean may include stars (but this is not neccessarily bad, the pixel1
@@ -396,6 +425,7 @@ class Star():
             if (DEBUG==True):
                 print("alpha = %.3f, Li&Ma significance = %.2f" %(alpha,self.lima_sig))
         except:
+            raise
             self.destroy=True
     
     def star_region_is_masked(self,FitsImage):
@@ -455,7 +485,7 @@ class Star():
             dist=self.R2
         else:
             dist=self.R1
-
+        
         square = np.logical_and(\
           np.abs(FitsImage.xx - self.Xcoord)<=dist,\
           np.abs(FitsImage.yy - self.Ycoord)<=dist)
