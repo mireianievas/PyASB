@@ -95,7 +95,9 @@ def horiz2xy(azimuth,altitude,ImageInfo,derotate=True):
          lon = ImageInfo.longitude-ImageInfo.longitude_offset)
         
     Rfactor = ImageInfo.radial_factor*(180.0/np.pi)*np.sqrt(2*(1-np.sin(altitude*np.pi/180.0)))
-    X = ImageInfo.resolution[0]/2 + ImageInfo.delta_x -\
+    #X = ImageInfo.resolution[0]/2 + ImageInfo.delta_x -\
+    #    Rfactor*np.cos(azimuth*np.pi/180.0-ImageInfo.azimuth_zeropoint*np.pi/180.0)
+    X = ImageInfo.resolution[0]/2 - ImageInfo.delta_x +\
         Rfactor*np.cos(azimuth*np.pi/180.0-ImageInfo.azimuth_zeropoint*np.pi/180.0)
     Y = ImageInfo.resolution[1]/2 + ImageInfo.delta_y +\
         Rfactor*np.sin(azimuth*np.pi/180.0-ImageInfo.azimuth_zeropoint*np.pi/180.0)
@@ -109,6 +111,7 @@ def xy2horiz(X,Y,ImageInfo,derotate=True):
     
     X = X - ImageInfo.resolution[0]/2.-ImageInfo.delta_x
     Y = Y - ImageInfo.resolution[1]/2.-ImageInfo.delta_y
+    X = ImageInfo.resolution[0] - X # flip the image horizontally
     Rfactor = np.sqrt(X**2 + Y**2)/ImageInfo.radial_factor
     
     if np.size(Rfactor)>1:

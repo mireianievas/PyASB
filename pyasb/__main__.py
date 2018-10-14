@@ -88,7 +88,7 @@ class LoadImage(object):
                 MasterBias=None,\
                 ImageInfo=self.ImageInfo)
         except:
-            raise
+            #raise
             print(inspect.stack()[0][2:4][::-1])
             print('Cannot reduce science frame')
         
