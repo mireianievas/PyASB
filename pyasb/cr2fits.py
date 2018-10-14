@@ -12,7 +12,7 @@
 ### BUT, there's nothing to worry about usage, laws etc.
 ### Enjoy.
 
-# Changes by Miguel Nievas:
+# Changes by Mireia Nievas:
 ## Metadata in Spanish
 ## Convert from local to UTC time
 ## Header fit the AstMon and PyASB keywords

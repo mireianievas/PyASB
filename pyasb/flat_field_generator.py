@@ -11,21 +11,21 @@ Create AllSky FlatFields from:
 ____________________________
 
 This module is part of the PyASB project, 
-created and maintained by Miguel Nievas [UCM].
+created and maintained by Mireia Nievas [UCM].
 ____________________________
 '''
 
 DEBUG = False
 
-__author__ = "Miguel Nievas"
+__author__ = "Mireia Nievas"
 __copyright__ = "Copyright 2012, PyASB project"
-__credits__ = ["Miguel Nievas"]
+__credits__ = ["Mireia Nievas"]
 __license__ = "GNU GPL v3"
 __shortname__ = "PyASB"
 __longname__ = "Python All-Sky Brightness pipeline"
 __version__ = "1.99.0"
-__maintainer__ = "Miguel Nievas"
-__email__ = "miguelnr89[at]gmail[dot]com"
+__maintainer__ = "Mireia Nievas"
+__email__ = "mirph4k[at]gmail[dot]com"
 __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 try:
@@ -423,7 +423,7 @@ def create_synthetic_image(radialprofile,ImageInfo):
     tck = angular_response(radialprofile,interporder=3,smoothing=None)
     IC = ImageCoordinates(ImageInfo)
     sx,sy = np.shape(IC.altitude_map)
-    map_response = scipy.interpolate.splev(90.0-IC.altitude_map.flatten(),tck)
+    map_response = scipy.interpolate.splev(90.0-IC.altitude_map.flatten(),tck,ext=3)
     map_response = np.array(map_response).reshape(sx,sy)
     map_response[np.isnan(map_response)] = 1
     return(map_response)

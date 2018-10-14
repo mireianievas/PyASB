@@ -7,19 +7,19 @@ Auxiliary functions to plot the SkyMap
 ____________________________
 
 This module is part of the PyASB project, 
-created and maintained by Miguel Nievas [UCM].
+created and maintained by Mireia Nievas [UCM].
 ____________________________
 '''
 
-__author__ = "Miguel Nievas"
+__author__ = "Mireia Nievas"
 __copyright__ = "Copyright 2012, PyASB project"
-__credits__ = ["Miguel Nievas"]
+__credits__ = ["Mireia Nievas"]
 __license__ = "GNU GPL v3"
 __shortname__ = "PyASB"
 __longname__ = "Python All-Sky Brightness pipeline"
 __version__ = "1.99.0"
-__maintainer__ = "Miguel Nievas"
-__email__ = "miguelnr89[at]gmail[dot]com"
+__maintainer__ = "Mireia Nievas"
+__email__ = "mirph4k[at]gmail[dot]com"
 __status__ = "Prototype" # "Prototype", "Development", or "Production"
 
 
@@ -27,6 +27,7 @@ try:
     import sys,os,inspect
     from astrometry import *
     #from scipy.ndimage import uniform_filter as denoise
+    from scipy.ndimage import median_filter
     import numpy as np
     import math
     import matplotlib.pyplot as plt
@@ -50,8 +51,9 @@ class SkyMap():
             print('Skipping Skymap Graph ...')
         else:
             print('Star Map plot ...')
+            bitpix = ImageInfo.ccd_bits
             self.stretch_data(\
-                FitsImage.fits_data_notcalibrated,\
+                FitsImage.fits_data_notcalibrated*1./2**bitpix,\
                 ImageInfo.perc_low,\
                 ImageInfo.perc_high)
             #self.setup_skymap()
@@ -101,7 +103,10 @@ class SkyMap():
     
     def stretch_data(self,fits_data,pmin,pmax):
         #log_fits_data = np.log(fits_data-np.min(fits_data)+1,dtype="float32")
-        log_fits_data = np.arcsinh(fits_data-np.min(fits_data)+1,dtype="float32")
+        # some statistics: min, max, mean
+        print(np.min(fits_data),np.max(fits_data),np.mean(fits_data))
+        fits_data = median_filter(fits_data, 3)
+        log_fits_data = np.arcsinh(fits_data-np.min(fits_data)+1.,dtype="float32")
         valuemin = np.percentile(log_fits_data,pmin)
         valuemax = np.percentile(log_fits_data,pmax)
         self.stretched_fits_data = log_fits_data.clip(valuemin,valuemax)
@@ -184,8 +189,7 @@ class SkyMap():
             self.skyfigure.canvas.mpl_disconnect(self.cid_keyboard)
             print(self.identified_stars)
             plt.close()
-        
-        self.astrometry_optimizer(full=(self.star_index>3))
+            self.astrometry_optimizer(full=(self.star_index>5))
 
         return(None)
     
