@@ -72,7 +72,7 @@ class CloudCoverage():
         #TotalPercStars = (TotalStarsWithPhot+1e-6)*1./(TotalStars+1e-6)
         TotalStars     = len(ImageAnalysis.StarCatalog.StarList_TotVisible)
         TotalDetected  = len(ImageAnalysis.StarCatalog.StarList_WithNearbyStar) 
-        TotalPercStars = TotalDetected/TotalStars
+        TotalPercStars = TotalDetected*1./TotalStars
         
         # Calculate the mean Cloud Coverage value (AllSky)
         self.mean_cloudcover = self.cloud_coverage_value(\

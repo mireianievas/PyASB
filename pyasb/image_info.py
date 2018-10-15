@@ -85,6 +85,7 @@ class ImageInfo(ImageTest):
         self.flip_image = False
         self.calibrate_astrometry = False
         self.projection = 'ZEA'
+        self.sel_flatfield=None
         # A better aprox would be np.min(self.resolution)/(180.0*np.sqrt(2)/np.pi)
         # but it depends on the image, which has not yet been read.
         

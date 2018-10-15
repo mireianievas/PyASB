@@ -48,10 +48,10 @@ def verbose(function, *args):
         out = function(*args)
     except:
         # Something happened while runing function
-        raise
+        #raise
         if DEBUG==True:
             print(str(inspect.stack()[0][2:4][::-1])+' Error')
-            raise
+            #raise
     else:
         return(out)
 
@@ -289,7 +289,8 @@ class Star():
             self.destroy=True
     
     def star_astrometry_sky(self,ImageInfo):
-        ''' Perform astrometry. Returns (if star is visible and well defined) its position on the sky and image'''
+        ''' Perform astrometry. Returns (if star is visible and well defined) 
+            its position on the sky and image'''
         
         ObsPyephem = pyephem_setup_real(ImageInfo)
         
@@ -350,7 +351,7 @@ class Star():
                 if FitsImage.mask[int(self.Ycoord+0.5)][int(self.Xcoord+0.5)] <= 0:
                     self.destroy = True
             except:
-                raise
+                pass
  
     def photometric_radius(self,ImageInfo):
         ''' Needs astrometry properties, photometric filter properties and ImageInfo
@@ -392,7 +393,7 @@ class Star():
              int(self.Xcoord + self.R1 + 0.5)) if self.valid_point(x,y,FitsImage)] \
             for y in xrange(int(self.Ycoord - self.R1 + 0.5),\
              int(self.Ycoord + self.R1 + 0.5))]
-        
+              
         # We have computed the star region. Flag it to be masked
         self.to_be_masked=True
     

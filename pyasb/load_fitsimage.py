@@ -112,7 +112,7 @@ class FitsImage(ImageTest):
             self.mask   = Mask_HDU[0].data
         except:
             print(inspect.stack()[0][2:4][::-1])
-            raise
+            #raise
         else: print('OK')
 
     def load_dark(self,MasterDark):
@@ -163,7 +163,6 @@ class FitsImage(ImageTest):
 
         skip_dark = False
         skip_flat = False
-
 
         ### Load FLAT Field
         try:
@@ -232,7 +231,7 @@ class FitsImage(ImageTest):
             skip_dark = False
 
         print('Calibrating image with MasterFlat and MasterDark ...'),
-    
+        
         # Subtract dark frame
         if skip_dark == False:
             self.fits_data = self.fits_data - self.SyntDark_Data
@@ -246,24 +245,26 @@ class FitsImage(ImageTest):
             self.bias_image_median = np.median(data_corners)
             self.bias_image_std    = np.std(data_corners)
             self.bias_image_err    = self.bias_image_std/np.sqrt(np.size(data_corners))
-            self.fits_data = self.fits_data-self.bias_image_median
-            print("Removed: %.2f +/- %.2f counts from measured background" \
-             %(self.bias_image_median,self.bias_image_err))
-            
-            if ImageInfo.summary_path not in [ False, "False", "false", "F", "screen" ]:
-                if not os.path.exists(ImageInfo.summary_path):
-                    os.makedirs(ImageInfo.summary_path)
-                measured_bias_log = open(ImageInfo.summary_path+'/measured_image_bias.txt','a+')
-                text_to_log = str(ImageInfo.date_string)+','+str(ImageInfo.used_filter)+','+\
-                 str(self.bias_image_median)+','+str(self.bias_image_err)+'\r\n'
-                measured_bias_log.write(text_to_log)
-                measured_bias_log.close()     
+            if np.isfinite(self.bias_image_median):
+                self.fits_data = self.fits_data-self.bias_image_median
+                print("Removed: %.2f +/- %.2f counts from measured background" \
+                 %(self.bias_image_median,self.bias_image_err))
+                
+                if ImageInfo.summary_path not in [ False, "False", "false", "F", "screen" ]:
+                    if not os.path.exists(ImageInfo.summary_path):
+                        os.makedirs(ImageInfo.summary_path)
+                    measured_bias_log = open(ImageInfo.summary_path+'/measured_image_bias.txt','a+')
+                    text_to_log = str(ImageInfo.date_string)+','+str(ImageInfo.used_filter)+','+\
+                     str(self.bias_image_median)+','+str(self.bias_image_err)+'\r\n'
+                    measured_bias_log.write(text_to_log)
+                    measured_bias_log.close()     
         
         # Flat field correction
         if skip_flat == False:
             # Skip flat correction for points with <10% illumination?
             #self.MasterFlat_Data[self.MasterFlat_Data<np.mean(self.MasterFlat_Data)/10.]=1.
             self.fits_data = self.fits_data/self.MasterFlat_Data
+
 
         print('Image calibration finished.')
 
@@ -278,8 +279,6 @@ class FitsImage(ImageTest):
                 self.fits_data = np.fliplr(self.fits_data)
             except:
                 print('Warning. Cannot flip calibrated image as requested')
-
-
 
     def __clear__(self):
         backup_attributes = [\
