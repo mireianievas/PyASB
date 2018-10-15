@@ -84,6 +84,7 @@ class ImageInfo(ImageTest):
         self.catalog_filename="catalog.csv"
         self.flip_image = False
         self.calibrate_astrometry = False
+        self.projection = 'ZEA'
         # A better aprox would be np.min(self.resolution)/(180.0*np.sqrt(2)/np.pi)
         # but it depends on the image, which has not yet been read.
         
@@ -108,7 +109,8 @@ class ImageInfo(ImageTest):
             "obs_name", "backgroundmap_title", "cloudmap_title", "skymap_path",\
             "photometry_table_path", "bouguerfit_path", "skybrightness_map_path", \
             "skybrightness_table_path", "cloudmap_path", "clouddata_path", \
-            "summary_path", "catalog_filename", "darkframe", "biasframe"]
+            "summary_path", "catalog_filename", "darkframe", "biasframe", \
+            "maskframe","projection" ]
         
         for option in ConfigOptions.FileOptions:
             setattr(self,option[0],option[1])

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+
 
 '''
 Cloud covering module
@@ -28,6 +28,7 @@ try:
     import sys,os,inspect
     import copy
     import numpy as np
+    import warnings
     import scipy.interpolate as sint
     import matplotlib as mpl
     import matplotlib.pyplot as plt
@@ -39,6 +40,7 @@ except:
     print(str(inspect.stack()[0][2:4][::-1])+': One or more modules missing')
     raise SystemExit
 
+warnings.simplefilter("ignore", category=RuntimeWarning)
 
 class CloudCoverage():
     ''' This is a completely optional module.
@@ -49,21 +51,28 @@ class CloudCoverage():
         #Old method, directly from the % stars. Gives higher values
         #TotalStars = len(ImageAnalysis.StarCatalog.StarList_woPhot)
         #TotalStarsWithPhot = len(ImageAnalysis.StarCatalog.StarList)
+
+        #TotalStars = 0;
+        #TotalStarsWithPhot = 0;
+        ImageAnalysis.StarCatalog.look_for_nearby_stars(Image.FitsImage,Image.ImageInfo)
         
-        TotalStars = 0;
-        TotalStarsWithPhot = 0;
-        for Star in ImageAnalysis.StarCatalog.StarList_Tot:
-            if Star.masked==True: continue
+        '''        
+        for Star in ImageAnalysis.StarCatalog.StarList_TotVisible:
+            #if Star.masked==True: continue
             #elif Star.saturated == True: continue
             #elif Star.cold_pixels==True: continue
-            if Star.altit_real<30: continue
+            #if Star.altit_real<30: continue
             # Star is not saturated and present in the sky, add it [weighted]
             TotalStars += 1
-            if Star not in ImageAnalysis.StarCatalog.StarList_Det: continue
+            if Star not in ImageAnalysis.StarCatalog.StarList_WithNearbyStar: continue
             # Star has photometric measures, add it [weighted]
             TotalStarsWithPhot += 1
+        '''
         
-        TotalPercStars = (TotalStarsWithPhot+1e-6)*1./(TotalStars+1e-6)
+        #TotalPercStars = (TotalStarsWithPhot+1e-6)*1./(TotalStars+1e-6)
+        TotalStars     = len(ImageAnalysis.StarCatalog.StarList_TotVisible)
+        TotalDetected  = len(ImageAnalysis.StarCatalog.StarList_WithNearbyStar) 
+        TotalPercStars = TotalDetected/TotalStars
         
         # Calculate the mean Cloud Coverage value (AllSky)
         self.mean_cloudcover = self.cloud_coverage_value(\
@@ -95,23 +104,25 @@ class CloudCoverage():
             #self.star_detection(Image)
             self.StarCatalog = ImageAnalysis.StarCatalog
             self.cloud_coverage(
-                self.StarCatalog.StarList_Det,
-                self.StarCatalog.StarList_Tot,BouguerFit)
+                self.StarCatalog.StarList_WithNearbyStar,
+                self.StarCatalog.StarList_TotVisible,BouguerFit)
             self.cloud_map(BouguerFit,ImageInfo=Image.ImageInfo)
             self.clouddata_table(ImageInfo=Image.ImageInfo)
     
     def star_detection(self,Image):
         # relax requisites to get more stars
-        normal_stdout = sys.stdout 
+        #normal_stdout = sys.stdout 
         #sys.stdout = open(os.devnull,'w')
         II = copy.deepcopy(Image.ImageInfo)
-        II.baseflux_detectable = II.baseflux_detectable/2.
-        II.max_magnitude += 0.5
-        II.min_altitude = 10
-        II.skymap_path = False
+        II.baseflux_detectable = II.baseflux_detectable/5.
+        II.base_radius   *= 5
+        #II.max_magnitude += 0.5
+        II.min_altitude   = 0
+        II.skymap_path    = False
         
-        self.StarCatalog = StarCatalog(Image.FitsImage,ImageInfo=II)
-        sys.stdout = normal_stdout
+        self.StarCatalog = StarCatalog(ImageInfo=II)
+        self.StarCatalog.process_catalog_specific(Image.FitsImage,II)
+        #sys.stdout = normal_stdout
         
     def create_bins(self):
         ''' Returns binned sky '''
@@ -200,14 +211,14 @@ class CloudCoverage():
                     
         
         # Normalization of flux percentages
-        PercentageFlux = PercentageFlux/ObservedStars
+        PercentageFlux = PercentageFlux*1./(1e-5 + ObservedStars)
         
         PercentageStars = \
             np.array((0+ObservedStars*1.0)/(1e-5+PredictedStars*1.0))
         
         self.CloudCoverage = self.cloud_coverage_value(PercentageStars)
         self.CloudCoverageErr = self.cloud_coverage_error(self.CloudCoverage,PercentageStars,PredictedStars)
-        
+        self.CloudCoverage[PredictedStars<2] = None # not enough stars
     
     def clouddata_table(self,ImageInfo):
         try:

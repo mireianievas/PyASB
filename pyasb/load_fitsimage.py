@@ -104,6 +104,16 @@ class FitsImage(ImageTest):
             raise
         else:
             print('OK')
+    
+    def load_mask(self,Mask):
+        print('Loading Mask ...'),
+        try:
+            Mask_HDU    = pyfits.open(Mask)
+            self.mask   = Mask_HDU[0].data
+        except:
+            print(inspect.stack()[0][2:4][::-1])
+            raise
+        else: print('OK')
 
     def load_dark(self,MasterDark):
         print('Loading MasterDark ...'),
@@ -145,7 +155,7 @@ class FitsImage(ImageTest):
 
         
 
-    def reduce_science_frame(self,MasterDark=None,MasterFlat=None,MasterBias=None,ImageInfo=None):
+    def reduce_science_frame(self,MasterDark=None,MasterFlat=None,MasterBias=None,Mask=None,ImageInfo=None):
         '''
         Load MasterDark and MasterFlat. MasterBias is neccesary only if working
         with different exposures between Dark and Science frames
@@ -155,7 +165,7 @@ class FitsImage(ImageTest):
         skip_flat = False
 
 
-                ### Load FLAT Field
+        ### Load FLAT Field
         try:
             self.load_flat(MasterFlat)
         except:
@@ -164,8 +174,17 @@ class FitsImage(ImageTest):
             skip_flat = True
         else:
             skip_flat = False
+        
+        try:
+            self.load_mask(Mask)
+        except:
+            print(str(inspect.stack()[0][2:4][::-1])+\
+            ' WARNING: Mask cannot be loaded. Using entire image.')
+            skip_mask = True
+        else:
+            skip_mask = False
 
-                ### Load DARK Frame
+        ### Load DARK Frame
         try:
             self.load_dark(MasterDark)
         except:
@@ -238,8 +257,7 @@ class FitsImage(ImageTest):
                 text_to_log = str(ImageInfo.date_string)+','+str(ImageInfo.used_filter)+','+\
                  str(self.bias_image_median)+','+str(self.bias_image_err)+'\r\n'
                 measured_bias_log.write(text_to_log)
-                measured_bias_log.close()
-            
+                measured_bias_log.close()     
         
         # Flat field correction
         if skip_flat == False:
@@ -247,7 +265,7 @@ class FitsImage(ImageTest):
             #self.MasterFlat_Data[self.MasterFlat_Data<np.mean(self.MasterFlat_Data)/10.]=1.
             self.fits_data = self.fits_data/self.MasterFlat_Data
 
-        print('OK')
+        print('Image calibration finished.')
 
     def flip_image_if_needed(self,ImageInfo):
         if (ImageInfo.flip_image==True):
@@ -265,7 +283,7 @@ class FitsImage(ImageTest):
 
     def __clear__(self):
         backup_attributes = [\
-            "fits_data","fits_Header","fits_data_notcalibrated"]
+            "fits_data","mask","fits_Header","fits_data_notcalibrated"]
 
         for atribute in list(self.__dict__):
             #if atribute[0]!="_" and atribute not in backup_attributes:

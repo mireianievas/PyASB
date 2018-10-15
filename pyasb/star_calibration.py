@@ -31,6 +31,8 @@ try:
     import sys,os,inspect
     import ephem
     import scipy.stats
+    import scipy.ndimage as ndimage
+    import scipy.ndimage.filters as filters
     from astrometry import *
     from skymap_plot import *
 except:
@@ -78,18 +80,28 @@ class Star():
         self.verbose_detection(self.star_astrometry_sky,ImageInfo,\
          errormsg=' Error performing star astrometry (sky), Star not visible?')
     
-    def camera_dependent_astrometry(self,FitsImage,ImageInfo):
+    def camera_dependent_starpositions(self,FitsImage,ImageInfo):
         # Astrometry for the current star (image)
         self.verbose_detection(self.star_astrometry_image,ImageInfo,\
          errormsg=' Error performing star astrometry (image)')
+        self.verbose_detection(self.star_astrometry_ismasked,FitsImage,\
+         errormsg=' Star is in a masked region')
         # Estimate radius to do the aperture photometry
         self.verbose_detection(self.photometric_radius,ImageInfo,\
          errormsg=' Error generating photometric radius')
+
+    def camera_dependent_regions(self,FitsImage,ImageInfo):
         # Create regions of stars and star+background
         self.verbose_detection(self.estimate_fits_region_star,FitsImage,\
          errormsg=' Cannot create the Star region')
         self.verbose_detection(self.estimate_fits_region_complete,FitsImage,\
          errormsg=' Cannot create the Star+Background region')
+   
+    def camera_dependent_detectpeaks(self,FitsImage,ImageInfo):
+        self.verbose_detection(self.detect_peaks,FitsImage,\
+         errormsg=' Cannot detect peaks')
+ 
+    def camera_dependent_astrometry(self,FitsImage,ImageInfo):
         # Measure fluxes
         self.verbose_detection(self.measure_star_fluxes,FitsImage.fits_data,\
          errormsg=' Error measuring fluxes')
@@ -138,11 +150,13 @@ class Star():
         self.verbose_detection(self.photometry_bouguervar,ImageInfo,\
          errormsg=' Error calculating bouguer variables')
         # Append star to star mask
-        #self.verbose_detection(self.append_to_star_mask,FitsImage,\
-        # errormsg=' Cannot add star to mask')
-        if self.to_be_masked==True:
+        self.verbose_detection(self.append_to_star_mask,FitsImage,\
+         errormsg=' Cannot add star to mask')
+        if not self.destroy and self.to_be_masked==True:
             try: self.append_to_star_mask(FitsImage)
-            except: print(str(inspect.stack()[0][2:4][::-1])+' Cannot add star to mask')
+            except:
+                raise 
+                print(str(inspect.stack()[0][2:4][::-1])+' Cannot add star to mask')
         
     def clear_objects(self):
         if DEBUG==True:
@@ -330,6 +344,14 @@ class Star():
             except:
                 self.destroy=True
     
+    def star_astrometry_ismasked(self,FitsImage):
+        if self.destroy==False:
+            try:
+                if FitsImage.mask[int(self.Ycoord+0.5)][int(self.Xcoord+0.5)] <= 0:
+                    self.destroy = True
+            except:
+                raise
+ 
     def photometric_radius(self,ImageInfo):
         ''' Needs astrometry properties, photometric filter properties and ImageInfo
             Returns R1,R2 and R3 '''
@@ -350,19 +372,24 @@ class Star():
             self.R3 = self.R1*3.0+3
         except:
             self.destroy=True
-    
+   
+    @staticmethod
+    def valid_point(x,y,FitsImage):
+        max_y,max_x = FitsImage.fits_data.shape
+        return(x>=0 and y>=0 and x<max_x and y<max_y)
+
     def estimate_fits_region_star(self,FitsImage):
         ''' Return the region that contains the star 
         (both for calibrated and uncalibrated data)'''
         self.fits_region_star = [[FitsImage.fits_data[y,x] \
             for x in xrange(int(self.Xcoord - self.R1 + 0.5),\
-             int(self.Xcoord + self.R1 + 0.5))] \
+             int(self.Xcoord + self.R1 + 0.5)) if self.valid_point(x,y,FitsImage)] \
             for y in xrange(int(self.Ycoord - self.R1 + 0.5),\
              int(self.Ycoord + self.R1 + 0.5))]
         # We will need this to look for saturated pixels.
         self.fits_region_star_uncalibrated = [[FitsImage.fits_data_notcalibrated[y,x] \
             for x in xrange(int(self.Xcoord - self.R1 + 0.5),\
-             int(self.Xcoord + self.R1 + 0.5))] \
+             int(self.Xcoord + self.R1 + 0.5)) if self.valid_point(x,y,FitsImage)] \
             for y in xrange(int(self.Ycoord - self.R1 + 0.5),\
              int(self.Ycoord + self.R1 + 0.5))]
         
@@ -374,7 +401,8 @@ class Star():
         self.fits_region_complete = [[FitsImage.fits_data[y,x] \
             for x in xrange(\
              max(0,int(self.Xcoord - self.R3 + 0.5)),\
-             min(len(FitsImage.fits_data[0]),int(self.Xcoord + self.R3 + 0.5)))] \
+             min(len(FitsImage.fits_data[0]),int(self.Xcoord + self.R3 + 0.5)))\
+             if self.valid_point(x,y,FitsImage)] \
             for y in xrange(\
              max(0,int(self.Ycoord - self.R3 + 0.5)),\
              min(len(FitsImage.fits_data),int(self.Ycoord + self.R3 + 0.5)))]
@@ -384,16 +412,39 @@ class Star():
         if (coarse==True):
             self.fits_region_centroid = [[FitsImage.fits_data[y,x] \
              for x in xrange(int(self.Xcoord - self.R2 + 0.5),\
-              int(self.Xcoord + self.R2 + 0.5))] \
+              int(self.Xcoord + self.R2 + 0.5)) if self.valid_point(x,y,FitsImage)] \
              for y in xrange(int(self.Ycoord - self.R2 + 0.5),\
               int(self.Ycoord + self.R2 + 0.5))]
         else:
             self.fits_region_centroid = [[FitsImage.fits_data[y,x] \
              for x in xrange(int(self.Xcoord - self.R1 + 0.5),\
-              int(self.Xcoord + self.R1 + 0.5))] \
+              int(self.Xcoord + self.R1 + 0.5)) if self.valid_point(x,y,FitsImage)] \
              for y in xrange(int(self.Ycoord - self.R1 + 0.5),\
               int(self.Ycoord + self.R1 + 0.5))]
-    
+
+    def detect_peaks(self,FitsImage,size=5,threshold=None):
+        ''' Find peaks (stars) in our complete region '''
+        data = np.array([[FitsImage.fits_data[y,x] \
+            for x in xrange(\
+             max(0,int(self.Xcoord - self.R3 + 0.5)),\
+             min(len(FitsImage.fits_data[0]),int(self.Xcoord + self.R3 + 0.5)))\
+             if self.valid_point(x,y,FitsImage)] \
+            for y in xrange(\
+             max(0,int(self.Ycoord - self.R3 + 0.5)),\
+             min(len(FitsImage.fits_data),int(self.Ycoord + self.R3 + 0.5)))])
+        # smooth the image
+        data = ndimage.gaussian_filter(data, 5)
+        data_max = filters.maximum_filter(data, size)
+        data_min = np.median(data)#filters.minimum_filter(data, size)
+        maxima = (data == data_max)
+        if threshold is None:
+            threshold = 1.5*np.std(data)
+        diff = ((data_max - data_min) > threshold)
+        maxima[diff==0] = 0
+        labeled, num_objects = ndimage.label(maxima)
+        if num_objects == 0:
+            self.destroy = True
+ 
     def measure_star_fluxes(self,fits_data,background_mode='median'):
         '''Needs self.Xcoord, self.Ycoord and self.R[1-3] defined
            Returns star fluxes'''
@@ -575,7 +626,8 @@ class Star():
     def append_to_star_mask(self,FitsImage):
         for x in xrange(int(self.Xcoord - self.R1 + 0.5),int(self.Xcoord + self.R1 + 0.5)):
             for y in xrange(int(self.Ycoord - self.R1 + 0.5),int(self.Ycoord + self.R1 + 0.5)):
-                FitsImage.star_mask[y][x] = True
+                if self.valid_point(x,y,FitsImage):
+                    FitsImage.star_mask[y][x] = True
     
     def __clear__(self):
         backup_attributes = [\
@@ -663,14 +715,23 @@ class StarCatalog():
         
         #Create the masked star matrix
         FitsImage.star_mask = np.zeros(np.array(FitsImage.fits_data).shape,dtype=bool)
-        
-        self.StarList_Det = []
-        self.StarList_Phot = []
+
+        self.StarList_TotVisible = []
+        self.StarList_Det        = []
+        self.StarList_Phot       = []
         for TheStar in self.StarList_Tot:
+            TheStar.camera_dependent_starpositions(FitsImage,ImageInfo)
+            #TheStar.clear_objects()
+            if (TheStar.destroy==False):
+                TheStar.camera_dependent_regions(FitsImage,ImageInfo)
+                self.StarList_TotVisible.append(TheStar)
+        
+        print(" - Observable stars: %d" %len(self.StarList_TotVisible))
+        
+        for TheStar in self.StarList_TotVisible:
             TheStar.camera_dependent_astrometry(FitsImage,ImageInfo)
             TheStar.camera_dependent_photometry(FitsImage,ImageInfo)
             TheStar.check_star_issues(FitsImage,ImageInfo)
-            TheStar.clear_objects()
             if (TheStar.destroy==False):
                 self.StarList_Det.append(TheStar)
                 if TheStar.PhotometricStandard==True:
@@ -678,7 +739,23 @@ class StarCatalog():
         
         print(" - Detected stars: %d" %len(self.StarList_Det))
         print(" - With photometry: %d" %len(self.StarList_Phot))
-    
+   
+    def look_for_nearby_stars(self,FitsImage,ImageInfo):
+        '''
+        Process the catalog. For each star, look for close stars in the field
+        (useful for example to detect clouds)
+        '''
+        
+        self.StarList_WithNearbyStar = []
+        for TheStar in self.StarList_TotVisible:
+            TheStar.destroy = False
+            TheStar.camera_dependent_detectpeaks(FitsImage,ImageInfo)
+            if (TheStar.destroy==False):
+                self.StarList_WithNearbyStar.append(TheStar)
+        
+        print(" - Observable stars: %d" %len(self.StarList_TotVisible))
+        print(" - With nearby stars: %d" %len(self.StarList_WithNearbyStar))
+
     def save_to_file(self,ImageInfo):
         try:
             assert(ImageInfo.photometry_table_path not in [False, "False", "false", "F"])

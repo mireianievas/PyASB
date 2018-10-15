@@ -86,6 +86,7 @@ class LoadImage(object):
                 self.ImageInfo.darkframe,\
                 self.ImageInfo.sel_flatfield,\
                 MasterBias=None,\
+                Mask=ImageInfo.maskframe,\
                 ImageInfo=self.ImageInfo)
         except:
             #raise

@@ -26,7 +26,7 @@ __status__ = "Prototype" # "Prototype", "Development", or "Production"
 try:
     import sys,os,inspect
     from astrometry import *
-    #from scipy.ndimage import uniform_filter as denoise
+    from scipy.ndimage import uniform_filter
     from scipy.ndimage import median_filter
     import numpy as np
     import math
@@ -105,7 +105,8 @@ class SkyMap():
         #log_fits_data = np.log(fits_data-np.min(fits_data)+1,dtype="float32")
         # some statistics: min, max, mean
         print(np.min(fits_data),np.max(fits_data),np.mean(fits_data))
-        fits_data = median_filter(fits_data, 3)
+        #fits_data = median_filter(fits_data, 3)
+        fits_data = uniform_filter(fits_data, 5)
         log_fits_data = np.arcsinh(fits_data-np.min(fits_data)+1.,dtype="float32")
         valuemin = np.percentile(log_fits_data,pmin)
         valuemax = np.percentile(log_fits_data,pmax)

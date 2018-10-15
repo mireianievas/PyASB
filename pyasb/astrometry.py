@@ -93,10 +93,16 @@ def horiz2xy(azimuth,altitude,ImageInfo,derotate=True):
          ImageInfo,\
          lat = ImageInfo.latitude-ImageInfo.latitude_offset,\
          lon = ImageInfo.longitude-ImageInfo.longitude_offset)
-        
-    Rfactor = ImageInfo.radial_factor*(180.0/np.pi)*np.sqrt(2*(1-np.sin(altitude*np.pi/180.0)))
+    
+    ### allow for different projections
+    if ImageInfo.projection == 'ZEA':
+        Rfactor = ImageInfo.radial_factor*(180.0/np.pi)*np.sqrt(2*(1-np.sin(altitude*np.pi/180.0)))
+    elif ImageInfo.projection == 'ARC':
+        Rfactor = ImageInfo.radial_factor*(180.0/np.pi)*(1-altitude/90.0)
+    
     #X = ImageInfo.resolution[0]/2 + ImageInfo.delta_x -\
     #    Rfactor*np.cos(azimuth*np.pi/180.0-ImageInfo.azimuth_zeropoint*np.pi/180.0)
+    
     X = ImageInfo.resolution[0]/2 - ImageInfo.delta_x +\
         Rfactor*np.cos(azimuth*np.pi/180.0-ImageInfo.azimuth_zeropoint*np.pi/180.0)
     Y = ImageInfo.resolution[1]/2 + ImageInfo.delta_y +\
@@ -117,8 +123,14 @@ def xy2horiz(X,Y,ImageInfo,derotate=True):
     if np.size(Rfactor)>1:
         Rfactor[Rfactor>360./np.pi]=360./np.pi
     
-    alt_factor = np.array(1-0.5*(np.pi*Rfactor/180.0)**2)
-    altitude = (180.0/np.pi)*np.arcsin(alt_factor)
+    ### allow for different projections
+    if ImageInfo.projection == 'ZEA':
+        alt_factor = np.array(1-0.5*(np.pi*Rfactor/180.0)**2)
+        altitude = (180.0/np.pi)*np.arcsin(alt_factor)
+    
+    elif ImageInfo.projection == 'ARC':
+        altitude = 90*(1-(Rfactor/ImageInfo.radial_factor)*(np.pi/180.0))
+    
     azimuth  = (360+ImageInfo.azimuth_zeropoint + 180.0*np.arctan2(Y,-X)/np.pi)%360
     
     if derotate==True and (ImageInfo.latitude_offset!=0 or ImageInfo.longitude_offset!=0):
